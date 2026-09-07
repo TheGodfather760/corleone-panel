@@ -61,6 +61,7 @@ export default function SettingsPage() {
   const [updateStatus, setUpdateStatus] = useState(null);
   const [updateInfo, setUpdateInfo] = useState(null);
   const [version, setVersion] = useState("");
+  const [lastChecked, setLastChecked] = useState(null);
 
   useEffect(() => {
     getVersion().then(setVersion).catch(() => setVersion("0.5.0"));
@@ -75,11 +76,13 @@ export default function SettingsPage() {
         setUpdateStatus('available');
       } else {
         setUpdateStatus('latest');
+        setLastChecked(new Date());
         setTimeout(() => setUpdateStatus(null), 3000);
       }
     } catch (e) {
       console.error('Update check error:', e);
-      setUpdateStatus('latest'); // endpoint'e ulaşılamazsa güncel say
+      setUpdateStatus('latest');
+      setLastChecked(new Date());
       setTimeout(() => setUpdateStatus(null), 3000);
     }
   };
@@ -214,7 +217,7 @@ export default function SettingsPage() {
                 <option value="profile">Profil</option>
               </select>
             </Row>
-            <Row label="Güncelleme Kontrolü" desc="Yeni sürüm olup olmadığını kontrol et">
+            <Row label="Güncelleme Kontrolü" desc={`Güncel sürüm: v${version || '0.5.0'}${lastChecked ? ' · Son kontrol: ' + lastChecked.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) + ' ' + lastChecked.toLocaleDateString('tr-TR') : ''}`}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 {updateStatus === 'available' && (
                   <button onClick={installUpdate}
