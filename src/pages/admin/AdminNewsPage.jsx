@@ -125,7 +125,7 @@ export default function AdminNewsPage() {
   const load = () => {
     setLoading(true);
     adminApi.getNews()
-      .then(r => setNews(r.data.news || []))
+      .then(r => setNews(r.data.data?.news || r.data.news || []))
       .catch(() => {})
       .finally(() => setLoading(false));
   };
