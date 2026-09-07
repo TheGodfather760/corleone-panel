@@ -64,11 +64,12 @@ function AnimatedNumber({ value }) {
   return <>{display.toLocaleString("tr-TR")}</>;
 }
 
-function SectionCard({ title, icon: Icon, children, action, onAction }) {
+function SectionCard({ title, icon: Icon, children, action, onAction, c }) {
+  const tc = c || { muted: "#888" };
   return (
     <div className="card" style={{ marginBottom: 0 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: c.muted, textTransform: "uppercase", letterSpacing: .8, display: "flex", alignItems: "center", gap: 6 }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: tc.muted, textTransform: "uppercase", letterSpacing: .8, display: "flex", alignItems: "center", gap: 6 }}>
           <Icon size={13} />{title}
         </span>
         {action && <button onClick={onAction} style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", color: "#f5a623", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{action}<ChevronRight size={13} /></button>}
@@ -212,7 +213,7 @@ export default function DashboardPage({ onNavigate }) {
 
           {/* Yaklaşan etkinlikler */}
           {data?.upcoming?.length > 0 && (
-            <SectionCard title="Yaklaşan Etkinlikler" icon={Calendar} action="Tümü" onAction={() => onNavigate("events")}>
+            <SectionCard title="Yaklaşan Etkinlikler" icon={Calendar} action="Tümü" onAction={() => onNavigate("events")} c={c}>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {data.upcoming.map(ev => {
                   const thumb = ev.dr_thumb_url || ev.image_url;
@@ -245,7 +246,7 @@ export default function DashboardPage({ onNavigate }) {
 
           {/* Haberler */}
           {data?.news?.length > 0 && (
-            <SectionCard title="Duyurular" icon={Newspaper}>
+            <SectionCard title="Duyurular" icon={Newspaper} c={c}>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {data.news.map((n, i) => (
                   <div key={i} onClick={() => setSelectedNews(n)}
@@ -274,7 +275,7 @@ export default function DashboardPage({ onNavigate }) {
 
           {/* Bekleyen görevler */}
           {data?.pending_tasks?.length > 0 && (
-            <SectionCard title="Görevler" icon={CheckCircle}>
+            <SectionCard title="Görevler" icon={CheckCircle} c={c}>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {data.pending_tasks.map((t, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "var(--bg-elevated)", borderRadius: 8, border: "1px solid var(--border)" }}>
@@ -293,7 +294,7 @@ export default function DashboardPage({ onNavigate }) {
 
           {/* Son aktiviteler */}
           {data?.activities?.length > 0 && (
-            <SectionCard title="Son Aktiviteler" icon={Activity}>
+            <SectionCard title="Son Aktiviteler" icon={Activity} c={c}>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {data.activities.map((a, i) => {
                   const act = ACT_LABEL[a.type] || { label: "Güncellendi", color: "#888" };
@@ -314,7 +315,7 @@ export default function DashboardPage({ onNavigate }) {
           )}
 
           {/* Profil tamamlama */}
-          <SectionCard title="Hızlı Erişim" icon={Star}>
+          <SectionCard title="Hızlı Erişim" icon={Star} c={c}>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {[
                 { label: "Etkinliklere Katıl", page: "events",    icon: Calendar },
