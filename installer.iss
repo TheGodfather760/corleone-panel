@@ -24,11 +24,12 @@ OutputBaseFilename=Corleone-Panel-Setup-{#AppVersion}
 SetupIconFile=src-tauri\icons\Corleone-Setup.ico
 Compression=lzma2/ultra64
 SolidCompression=yes
-WizardStyle=modern
-WizardSizePercent=120
+WizardStyle=classic
+WizardSizePercent=100
 DisableWelcomePage=no
 DisableDirPage=no
 DisableProgramGroupPage=yes
+DisableReadyPage=no
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 UninstallDisplayIcon={app}\{#AppExeName}
@@ -39,9 +40,12 @@ VersionInfoDescription={#AppName} Installer
 VersionInfoProductName={#AppName}
 VersionInfoProductVersion={#AppVersion}
 
-; Koyu tema renkleri
+; Görseller
 WizardImageFile=src-tauri\nsis\sidebar.bmp
-WizardSmallImageFile=src-tauri\nsis\header.bmp
+WizardSmallImageFile=src-tauri\nsis\logotype-corleone-setup.bmp
+WizardImageBackColor=$1A1A1A
+WizardImageStretch=yes
+LicenseFile=src-tauri\nsis\license.txt
 
 [Languages]
 Name: "turkish"; MessagesFile: "compiler:Languages\Turkish.isl"
@@ -72,20 +76,53 @@ Filename: "{app}\{#AppExeName}"; Description: "Corleone Panel'i başlat"; Flags:
 Type: filesandordirs; Name: "{app}"
 
 [Code]
-// Koyu tema için renk özelleştirmeleri
+const
+  BG     = $100C08;
+  TEXT_C = $C8B99A;
+  ACCENT = $23A6F5;
+  MUTED  = $6B5C45;
+  INPUT  = $2A2218;
+
+procedure SetLabelColors();
+begin
+  // Welcome sayfası
+  WizardForm.WelcomeLabel1.Font.Color := ACCENT;
+  WizardForm.WelcomeLabel1.Font.Style := [fsBold];
+  WizardForm.WelcomeLabel2.Font.Color := TEXT_C;
+  // Finish sayfası
+  WizardForm.FinishedLabel.Font.Color := TEXT_C;
+  WizardForm.FinishedHeadingLabel.Font.Color := ACCENT;
+  // Dir sayfası
+  WizardForm.SelectDirLabel.Font.Color := TEXT_C;
+  WizardForm.SelectDirBrowseLabel.Font.Color := MUTED;
+  // Ready sayfası
+  WizardForm.ReadyLabel.Font.Color := TEXT_C;
+  // Genel
+  WizardForm.PageNameLabel.Font.Color := ACCENT;
+  WizardForm.PageNameLabel.Font.Style := [fsBold];
+  WizardForm.PageNameLabel.Font.Size := 11;
+  WizardForm.PageDescriptionLabel.Font.Color := MUTED;
+  WizardForm.StatusLabel.Font.Color := TEXT_C;
+  WizardForm.FilenameLabel.Font.Color := MUTED;
+end;
+
 procedure InitializeWizard();
 begin
-  // Wizard arka plan rengi
-  WizardForm.Color := $1A1A1A;
-  WizardForm.Font.Color := $DDDDDD;
-  
-  // Buton renkleri
-  WizardForm.NextButton.Font.Color := $000000;
-  WizardForm.BackButton.Font.Color := $000000;
-  WizardForm.CancelButton.Font.Color := $000000;
-  
-  // Başlık alanı
-  WizardForm.PageDescriptionLabel.Font.Color := $888888;
-  WizardForm.PageNameLabel.Font.Color := $F5A623;
-  WizardForm.PageNameLabel.Font.Style := [fsBold];
+  WizardForm.Color := BG;
+  WizardForm.Font.Color := TEXT_C;
+  WizardForm.Font.Size := 9;
+  WizardForm.InnerPage.Color := BG;
+  WizardForm.DirEdit.Color := INPUT;
+  WizardForm.DirEdit.Font.Color := TEXT_C;
+  WizardForm.ReadyMemo.Color := INPUT;
+  WizardForm.ReadyMemo.Font.Color := TEXT_C;
+  WizardForm.LicenseMemo.Color := INPUT;
+  WizardForm.LicenseMemo.Font.Color := TEXT_C;
+  SetLabelColors();
+end;
+
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  WizardForm.InnerPage.Color := BG;
+  SetLabelColors();
 end;
