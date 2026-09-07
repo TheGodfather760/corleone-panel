@@ -58,8 +58,7 @@
         "languages": ["Turkish"],
         "installMode": "currentUser",
         "headerImage": "nsis/header.bmp",
-        "sidebarImage": "nsis/sidebar.bmp",
-        "license": null
+        "sidebarImage": "nsis/sidebar.bmp"
       },
       "wix": {
         "language": "tr-TR"
