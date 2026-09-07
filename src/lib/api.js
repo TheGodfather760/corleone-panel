@@ -78,11 +78,12 @@ export const adminApi = {
   uploadEventMedia: (formData) => api.post("/auth/event-media.php?action=upload", formData, { headers: { "Content-Type": "multipart/form-data" } }),
 
   // Davetler
-  getInvites:     () => api.get("/auth/users-list.php?action=invites"),
-  createInvite:   (data) => api.post("/auth/users-list.php?action=create_invite", data),
-  deleteInvite:   (id) => api.post("/auth/users-list.php?action=delete_invite", { id }),
-  getInviteRequests: () => api.get("/auth/invite-request.php?action=list"),
-  updateInviteRequest: (id, status) => api.post("/auth/invite-request.php?action=update", { id, status }),
+  getInvites:          () => api.get("/auth/invites.php?action=list"),
+  createInvite:        (data) => api.post("/auth/invites.php?action=create", data),
+  deleteInvite:        (id) => api.post("/auth/invites.php?action=delete", { id }),
+  getInviteRequests:   (status) => api.get(`/auth/invites.php?action=requests${status ? '&status='+status : ''}`),
+  updateInviteRequest: (id, status) => api.post("/auth/invites.php?action=update_request", { id, status }),
+  deleteInviteRequest: (id) => api.post("/auth/invites.php?action=delete_request", { id }),
 
   // Dosya yönetimi
   getDownloads:   () => api.get("/auth/downloads-list.php?admin=1"),
