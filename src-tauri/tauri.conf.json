@@ -36,7 +36,7 @@
       }
     },
     "updater": {
-      "endpoints": ["https://corleoneteam.com.tr/panel/releases/latest.json"],
+      "endpoints": ["https://github.com/TheGodfather760/corleone-panel/releases/latest/download/latest.json"],
       "dialog": false,
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDMzN0RDRjkzMUUyRkU4MkUKUldRdTZDOGVrODk5TTFzTWJWbGQxdHNMemp2UVoxTUdYd0Y3c0c4cEkrZ3hXejdTSXJPNFJYTkIK"
     }
