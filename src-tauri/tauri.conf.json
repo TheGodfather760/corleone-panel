@@ -58,7 +58,9 @@
         "languages": ["Turkish"],
         "installMode": "currentUser",
         "headerImage": "nsis/header.bmp",
-        "sidebarImage": "nsis/sidebar.bmp"
+        "sidebarImage": "nsis/sidebar.bmp",
+        "installerIcon": "icons/Corleone-Setup.ico",
+        "uninstallerIcon": "icons/Corleone-Setup.ico"
       },
       "wix": {
         "language": "tr-TR"
