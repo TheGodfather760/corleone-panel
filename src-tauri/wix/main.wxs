@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Fragment>
+    <!-- Corleone Panel Installer Özelleştirmeleri -->
+    <UI>
+      <!-- Koyu arka plan rengi -->
+      <Property Id="ARPCOMMENTS" Value="Corleone™ Team tarafından geliştirilmiştir." />
+
+      <!-- Renk paleti: koyu tema -->
+      <Property Id="WixUI_Bmp_Background" Value="!(bindpath.WixUIImagesPath)corleone_dialog.bmp" />
+      <Property Id="WixUI_Bmp_Banner"     Value="!(bindpath.WixUIImagesPath)corleone_banner.bmp" />
+    </UI>
+  </Fragment>
+</Wix>

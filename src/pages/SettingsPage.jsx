@@ -220,6 +220,9 @@ export default function SettingsPage() {
                 <option value="profile">Profil</option>
               </select>
             </Row>
+            <Row label="Açılış Animasyonu" desc="Uygulama açılırken intro videoyu göster">
+              <Toggle value={!settings.skipIntro} onChange={v => update("skipIntro", !v)} />
+            </Row>
             <Row label="Güncelleme Kontrolü" desc={`Güncel sürüm: v${version || '0.5.0'}${lastChecked ? ' · Son kontrol: ' + lastChecked.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) + ' ' + lastChecked.toLocaleDateString('tr-TR') : ''}`}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 {updateStatus === 'available' && (

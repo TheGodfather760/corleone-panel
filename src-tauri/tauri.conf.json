@@ -51,6 +51,19 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "windows": {
+      "nsis": {
+        "displayLanguageSelector": false,
+        "languages": ["Turkish"],
+        "installMode": "currentUser",
+        "headerImage": "nsis/header.bmp",
+        "sidebarImage": "nsis/sidebar.bmp",
+        "license": null
+      },
+      "wix": {
+        "language": "tr-TR"
+      }
+    }
   }
 }

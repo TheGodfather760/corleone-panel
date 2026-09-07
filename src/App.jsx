@@ -1,8 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
+import { useState } from "react";
 import { AuthProvider, useAuth } from "./lib/AuthContext";
 import { SettingsProvider, useSettings } from "./lib/SettingsContext";
 import AppLayout from "./components/AppLayout";
+import IntroScreen from "./components/IntroScreen";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import ProfilePage from "./pages/ProfilePage";
@@ -74,11 +76,23 @@ export default function App() {
     <AuthProvider>
       <SettingsProvider>
         <BrowserRouter>
-          <Routes>
-            <Route path="/*" element={<ProtectedRoutes />} />
-          </Routes>
+          <AppWithIntro />
         </BrowserRouter>
       </SettingsProvider>
     </AuthProvider>
+  );
+}
+
+function AppWithIntro() {
+  const { settings } = useSettings();
+  const [introDone, setIntroDone] = useState(settings.skipIntro);
+
+  return (
+    <>
+      {!introDone && <IntroScreen onDone={() => setIntroDone(true)} />}
+      <Routes>
+        <Route path="/*" element={<ProtectedRoutes />} />
+      </Routes>
+    </>
   );
 }
