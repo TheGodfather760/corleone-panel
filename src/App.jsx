@@ -1,0 +1,75 @@
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
+import { AuthProvider, useAuth } from "./lib/AuthContext";
+import { SettingsProvider, useSettings } from "./lib/SettingsContext";
+import AppLayout from "./components/AppLayout";
+import LoginPage from "./pages/LoginPage";
+import DashboardPage from "./pages/DashboardPage";
+import ProfilePage from "./pages/ProfilePage";
+import EventsPage from "./pages/EventsPage";
+import DownloadsPage from "./pages/DownloadsPage";
+import MediaPage from "./pages/MediaPage";
+import SettingsPage from "./pages/SettingsPage";
+
+function DashboardWrapper() {
+  const navigate = useNavigate();
+  return <DashboardPage onNavigate={(page) => navigate(`/${page}`)} />;
+}
+
+function ProtectedRoutes() {
+  const { user, loading } = useAuth();
+  const { settings } = useSettings();
+  const location = useLocation();
+
+  if (loading) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "var(--bg-primary)" }}>
+        <div style={{ width: 32, height: 32, borderRadius: "50%", border: "2px solid var(--accent)", borderTopColor: "transparent", animation: "spin 0.8s linear infinite" }} />
+      </div>
+    );
+  }
+
+  if (!user) return <LoginPage />;
+
+  const transition = settings.animationsEnabled
+    ? { duration: 0.18, ease: "easeOut" }
+    : { duration: 0 };
+
+  const variants = {
+    initial: { opacity: 0, y: 8 },
+    animate: { opacity: 1, y: 0 },
+    exit:    { opacity: 0, y: -8 },
+  };
+
+  return (
+    <AppLayout>
+      <AnimatePresence mode="wait">
+        <motion.div key={location.pathname} variants={variants} initial="initial" animate="animate" exit="exit" transition={transition} style={{ height: "100%" }}>
+          <Routes location={location}>
+            <Route path="/dashboard"  element={<DashboardWrapper />} />
+            <Route path="/profile"    element={<ProfilePage />} />
+            <Route path="/events"     element={<EventsPage />} />
+            <Route path="/downloads"  element={<DownloadsPage />} />
+            <Route path="/media"      element={<MediaPage />} />
+            <Route path="/settings"   element={<SettingsPage />} />
+            <Route path="*"           element={<Navigate to={`/${settings.startPage}`} replace />} />
+          </Routes>
+        </motion.div>
+      </AnimatePresence>
+    </AppLayout>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <SettingsProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/*" element={<ProtectedRoutes />} />
+          </Routes>
+        </BrowserRouter>
+      </SettingsProvider>
+    </AuthProvider>
+  );
+}
