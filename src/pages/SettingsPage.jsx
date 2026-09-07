@@ -134,6 +134,7 @@ export default function SettingsPage() {
                 ))}
               </div>
             </Row>
+            <Row label="Tema" desc="Arayüz renk teması">
               <SegmentedControl
                 value={settings.theme}
                 onChange={v => update("theme", v)}

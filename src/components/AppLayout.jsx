@@ -1,7 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../lib/AuthContext";
 import { useSettings } from "../lib/SettingsContext";
-import { LayoutDashboard, Calendar, Download, Image, User, LogOut, Settings, Newspaper, Users, Mail, FolderOpen } from "lucide-react";
+import { LayoutDashboard, Calendar, Download, Image, User, LogOut, Settings, ShieldCheck } from "lucide-react";
 
 const LOGOS = {
   logotype2025: "/Corleone-Logotype-2025.png",
@@ -18,13 +18,7 @@ const navItems = [
   { to: "/settings",  icon: Settings,        label: "Ayarlar" },
 ];
 
-const adminItems = [
-  { to: "/admin/news",      icon: Newspaper,  label: "Haberler" },
-  { to: "/admin/events",    icon: Calendar,   label: "Etkinlik Yön." },
-  { to: "/admin/invites",   icon: Mail,       label: "Davetler" },
-  { to: "/admin/downloads", icon: FolderOpen, label: "Dosya Yön." },
-  { to: "/admin/users",     icon: Users,      label: "Üye Yönetimi" },
-];
+
 
 export default function AppLayout({ children }) {
   const { user, logout } = useAuth();
@@ -46,15 +40,9 @@ export default function AppLayout({ children }) {
             </NavLink>
           ))}
           {isAdmin && (
-            <>
-              <div style={{ width: 1, height: 20, background: "rgba(255,255,255,.1)", margin: "0 6px", alignSelf: "center" }} />
-              <span style={{ fontSize: 9, fontWeight: 700, color: "#f5a623", letterSpacing: 1, alignSelf: "center", opacity: .7 }}>ADMIN</span>
-              {adminItems.map(({ to, icon: Icon, label }) => (
-                <NavLink key={to} to={to} className={({ isActive }) => `nav-btn${isActive ? " active" : ""}`}>
-                  <Icon />{label}
-                </NavLink>
-              ))}
-            </>
+            <NavLink to="/admin" className={({ isActive }) => `nav-btn${isActive ? " active" : ""}`}>
+              <ShieldCheck />Admin
+            </NavLink>
           )}
         </nav>
 
