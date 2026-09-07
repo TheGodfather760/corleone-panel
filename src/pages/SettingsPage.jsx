@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSettings } from "../lib/SettingsContext";
 import { useAuth } from "../lib/AuthContext";
 import { open } from "@tauri-apps/plugin-dialog";
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
-import { Sun, Moon, Type, Bell, Download, AppWindow, LogOut, FolderOpen, RefreshCw } from "lucide-react";
+import { getVersion } from "@tauri-apps/api/app";
+import { Sun, Moon, Type, Bell, Download, AppWindow, LogOut, FolderOpen, RefreshCw, Info } from "lucide-react";
 
 function Section({ title, icon: Icon, children }) {
   return (
@@ -57,8 +58,13 @@ export default function SettingsPage() {
   const { settings, update } = useSettings();
   const { logout } = useAuth();
   const [saved, setSaved] = useState(false);
-  const [updateStatus, setUpdateStatus] = useState(null); // null | 'checking' | 'available' | 'latest' | 'downloading' | 'error'
+  const [updateStatus, setUpdateStatus] = useState(null);
   const [updateInfo, setUpdateInfo] = useState(null);
+  const [version, setVersion] = useState("");
+
+  useEffect(() => {
+    getVersion().then(setVersion).catch(() => setVersion("0.5.0"));
+  }, []);
 
   const checkUpdate = async () => {
     setUpdateStatus('checking');
@@ -221,6 +227,19 @@ export default function SettingsPage() {
                   {updateStatus === 'checking' ? 'Kontrol ediliyor...' : updateStatus === 'latest' ? '✓ Güncel' : updateStatus === 'error' ? 'Hata' : updateStatus === 'downloading' ? 'İndiriliyor...' : 'Kontrol Et'}
                 </button>
               </div>
+            </Row>
+          </Section>
+
+          {/* Hakkında */}
+          <Section title="Hakkında" icon={Info}>
+            <Row label="Sürüm" desc="Corleone Panel">
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#f5a623", background: "rgba(245,166,35,.1)",
+                border: "1px solid rgba(245,166,35,.2)", padding: "4px 12px", borderRadius: 7 }}>
+                v{version || "0.5.0"}
+              </span>
+            </Row>
+            <Row label="Geliştirici" desc="Corleone™ Team">
+              <span style={{ fontSize: 11, color: "#666" }}>corleoneteam.com.tr</span>
             </Row>
           </Section>
 

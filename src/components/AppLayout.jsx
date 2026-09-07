@@ -2,6 +2,8 @@ import { NavLink } from "react-router-dom";
 import { useAuth } from "../lib/AuthContext";
 import { useSettings } from "../lib/SettingsContext";
 import { LayoutDashboard, Calendar, Download, Image, User, LogOut, Settings, ShieldCheck } from "lucide-react";
+import { getVersion } from "@tauri-apps/api/app";
+import { useEffect, useState } from "react";
 
 const LOGOS = {
   logotype2025: "/Corleone-Logotype-2025.png",
@@ -25,12 +27,24 @@ export default function AppLayout({ children }) {
   const { settings } = useSettings();
   const logoSrc = LOGOS[settings.sidebarLogo] ?? LOGOS.logotype2025;
   const isAdmin = user?.role === "admin" || user?.role === "moderator";
+  const [version, setVersion] = useState("");
+
+  useEffect(() => {
+    getVersion().then(setVersion).catch(() => setVersion("0.5.0"));
+  }, []);
 
   return (
     <div className="app-shell">
       <header className="topbar">
         <div className="topbar-logo">
           <img src={logoSrc} alt="Corleone" style={{ height: 28 }} />
+          {version && (
+            <span style={{ fontSize: 9, fontWeight: 700, color: "#f5a623", opacity: .6,
+              background: "rgba(245,166,35,.1)", border: "1px solid rgba(245,166,35,.2)",
+              padding: "1px 6px", borderRadius: 6, letterSpacing: .4 }}>
+              v{version}
+            </span>
+          )}
         </div>
 
         <nav className="topbar-nav">
