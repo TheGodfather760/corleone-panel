@@ -72,10 +72,14 @@ export const adminApi = {
   deleteNews:     (id) => api.post("/auth/news.php?action=delete", { id }),
 
   // Etkinlik yönetimi
-  getEvents:      () => api.get("/auth/events-list.php?admin=1"),
-  createEvent:    (data) => api.post("/auth/events-list.php?action=create", data),
-  updateEvent:    (data) => api.post("/auth/events-list.php?action=update", data),
-  deleteEvent:    (id) => api.post("/auth/events-list.php?action=delete", { id }),
+  getEvents:        () => api.get("/auth/admin-events.php?action=list"),
+  createEvent:      (data) => api.post("/auth/admin-events.php?action=create", data, { headers: { "Content-Type": "multipart/form-data" } }),
+  updateEvent:      (data) => api.post("/auth/admin-events.php?action=update", data, { headers: { "Content-Type": "multipart/form-data" } }),
+  deleteEvent:      (id) => api.post("/auth/admin-events.php?action=delete", { id }),
+  getEventAttendees:(id) => api.get(`/auth/admin-events.php?action=attendees&event_id=${id}`),
+  getEventMedia:    (id) => api.get(`/auth/admin-events.php?action=media&event_id=${id}`),
+  approveMedia:     (id) => api.post("/auth/admin-events.php?action=approve_media", { id }),
+  deleteMedia:      (id) => api.post("/auth/admin-events.php?action=delete_media", { id }),
   uploadEventMedia: (formData) => api.post("/auth/event-media.php?action=upload", formData, { headers: { "Content-Type": "multipart/form-data" } }),
 
   // Davetler
