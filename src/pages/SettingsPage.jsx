@@ -120,7 +120,20 @@ export default function SettingsPage() {
         <div>
           {/* Görünüm */}
           <Section title="Görünüm" icon={Sun}>
-            <Row label="Tema" desc="Uygulama renk teması">
+            <Row label="Logo" desc="Üst bar logo seçimi">
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                {[
+                  { value: "logotype2025", src: "/Corleone-Logotype-2025.png" },
+                  { value: "logotype",     src: "/logotype.png" },
+                  { value: "logo",         src: "/logo-square.png" },
+                ].map(opt => (
+                  <div key={opt.value} onClick={() => update("sidebarLogo", opt.value)}
+                    style={{ padding: 6, borderRadius: 8, border: `1px solid ${settings.sidebarLogo === opt.value ? "#f5a623" : "rgba(255,255,255,.1)"}`, background: settings.sidebarLogo === opt.value ? "rgba(245,166,35,.1)" : "rgba(255,255,255,.04)", cursor: "pointer", transition: "all .2s" }}>
+                    <img src={opt.src} alt={opt.value} style={{ height: 22, display: "block" }} />
+                  </div>
+                ))}
+              </div>
+            </Row>
               <SegmentedControl
                 value={settings.theme}
                 onChange={v => update("theme", v)}

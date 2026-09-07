@@ -1,6 +1,13 @@
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../lib/AuthContext";
+import { useSettings } from "../lib/SettingsContext";
 import { LayoutDashboard, Calendar, Download, Image, User, LogOut, Settings } from "lucide-react";
+
+const LOGOS = {
+  logotype2025: "/Corleone-Logotype-2025.png",
+  logotype:     "/logotype.png",
+  logo:         "/logo-square.png",
+};
 
 const navItems = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -13,13 +20,15 @@ const navItems = [
 
 export default function AppLayout({ children }) {
   const { user, logout } = useAuth();
+  const { settings } = useSettings();
+  const logoSrc = LOGOS[settings.sidebarLogo] ?? LOGOS.logotype2025;
 
   return (
     <div className="app-shell">
       <header className="topbar">
         {/* Logo */}
         <div className="topbar-logo">
-          <img src="/logotype.png" alt="Corleone" style={{ height: 28 }} />
+          <img src={logoSrc} alt="Corleone" style={{ height: 28 }} />
         </div>
 
         {/* Nav ikonları */}

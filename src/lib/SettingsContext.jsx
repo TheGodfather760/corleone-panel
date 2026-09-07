@@ -9,6 +9,7 @@ const DEFAULTS = {
   eventReminder: true,
   announcementNotif: true,
   downloadNotif: true,
+  sidebarLogo: "logotype2025",
 };
 
 const SettingsContext = createContext(null);
