@@ -69,6 +69,77 @@
 [data-theme="light"] ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 4px; }
 [data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
 
+/* ── LIGHT TEMA GLOBAL OVERRIDES ── */
+/* inline style'lardaki hardcoded koyu renkleri açık temada geçersiz kıl */
+[data-theme="light"] {
+  color-scheme: light;
+}
+
+/* Tüm div/span/p içindeki koyu hardcoded renkler için genel override */
+[data-theme="light"] .page-content { color: #1e1e1e; }
+
+/* var(--surface) ve var(--bg-*) kullanan kutular */
+[data-theme="light"] [style*="var(--surface)"],
+[data-theme="light"] [style*="var(--bg-card)"],
+[data-theme="light"] [style*="var(--bg-elevated)"] {
+  color: #1e1e1e;
+}
+
+/* Hardcoded #fff, #ddd, #ccc, #aaa yazı renkleri */
+[data-theme="light"] [style*="color: \"#fff\""],
+[data-theme="light"] [style*="color: \"#ffffff\""],
+[data-theme="light"] [style*="color: \"#ddd\""],
+[data-theme="light"] [style*="color: \"#dddddd\""],
+[data-theme="light"] [style*="color: \"#ccc\""],
+[data-theme="light"] [style*="color: \"#cccccc\""],
+[data-theme="light"] [style*="color: \"#aaa\""] {
+  color: #1a1a1a !important;
+}
+
+/* Hardcoded #888, #666, #555 muted renkler */
+[data-theme="light"] [style*="color: \"#888\""],
+[data-theme="light"] [style*="color: \"#888888\""],
+[data-theme="light"] [style*="color: \"#666\""],
+[data-theme="light"] [style*="color: \"#666666\""],
+[data-theme="light"] [style*="color: \"#555\""],
+[data-theme="light"] [style*="color: \"#555555\""] {
+  color: #555 !important;
+}
+
+/* Hardcoded koyu background'lar */
+[data-theme="light"] [style*="background: \"rgba(255,255,255,.06)\""],
+[data-theme="light"] [style*="background: \"rgba(255,255,255,.04)\""],
+[data-theme="light"] [style*="background: \"rgba(255,255,255,.08)\""] {
+  background: rgba(0,0,0,0.05) !important;
+}
+
+/* Border overrides */
+[data-theme="light"] [style*="border: \"1px solid rgba(255,255,255,.1)\""],
+[data-theme="light"] [style*="border: \"1px solid rgba(255,255,255,.12)\""],
+[data-theme="light"] [style*="border: \"1px solid rgba(255,255,255,.15)\""] {
+  border-color: rgba(0,0,0,0.12) !important;
+}
+
+/* Input/select/textarea açık temada */
+[data-theme="light"] input,
+[data-theme="light"] textarea,
+[data-theme="light"] select {
+  color: #1a1a1a;
+  background: #eaecf0;
+  border-color: rgba(0,0,0,0.12);
+}
+
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder {
+  color: #888;
+}
+
+/* Card içi genel yazı rengi */
+[data-theme="light"] .card *,
+[data-theme="light"] .stat-card * {
+  border-color: rgba(0,0,0,0.08);
+}
+
 [data-theme="corleone"] {
   --bg-primary: #110e0a;
   --bg-secondary: #1c1710;

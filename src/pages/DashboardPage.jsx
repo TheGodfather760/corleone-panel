@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../lib/AuthContext";
+import { useSettings } from "../lib/SettingsContext";
 import { dashboardApi } from "../lib/api";
 import { Calendar, Image, Star, Clock, ChevronRight, CheckCircle, Newspaper, Activity, X } from "lucide-react";
 
@@ -67,7 +68,7 @@ function SectionCard({ title, icon: Icon, children, action, onAction }) {
   return (
     <div className="card" style={{ marginBottom: 0 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: .8, display: "flex", alignItems: "center", gap: 6 }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: c.muted, textTransform: "uppercase", letterSpacing: .8, display: "flex", alignItems: "center", gap: 6 }}>
           <Icon size={13} />{title}
         </span>
         {action && <button onClick={onAction} style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", color: "#f5a623", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{action}<ChevronRight size={13} /></button>}
@@ -101,6 +102,16 @@ function NewsModal({ news, onClose }) {
 
 export default function DashboardPage({ onNavigate }) {
   const { user } = useAuth();
+  const { settings } = useSettings();
+  const isLight = settings.theme === "light";
+  const c = {
+    text:    isLight ? "#1a1a1a" : "#fff",
+    sub:     isLight ? "#444"    : "#ccc",
+    muted:   isLight ? "#666"    : "#888",
+    faint:   isLight ? "#888"    : "#555",
+    cardBg:  isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,.04)",
+    border:  isLight ? "rgba(0,0,0,0.10)" : "rgba(255,255,255,.08)",
+  };
   const [data, setData] = useState(null);
   const [selectedNews, setSelectedNews] = useState(null);
   const countdown = useCountdown(data?.next_event?.event_date);
@@ -130,14 +141,14 @@ export default function DashboardPage({ onNavigate }) {
       {/* Üst bar */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#888" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: c.muted }}>
             <Calendar size={13} />{dateStr}
           </div>
           {data?.next_event && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#888" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: c.muted }}>
               <Clock size={13} />
               <span>Sonraki:</span>
-              <span style={{ color: "#fff", fontWeight: 600, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{data.next_event.title}</span>
+              <span style={{ color: c.text, fontWeight: 600, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{data.next_event.title}</span>
               <span style={{ color: "#f5a623", fontWeight: 700 }}>{countdown}</span>
             </div>
           )}
@@ -153,9 +164,9 @@ export default function DashboardPage({ onNavigate }) {
                 </div>
               )}
               <span style={{ color: rank.color, fontWeight: 700, position: "relative" }}>{rank.name}</span>
-              <span style={{ color: "#555", position: "relative" }}>·</span>
+              <span style={{ color: c.faint, position: "relative" }}>·</span>
               <span style={{ color: "#f5a623", fontWeight: 700, position: "relative" }}><AnimatedNumber value={points} /></span>
-              <span style={{ color: "#555", position: "relative" }}>puan</span>
+              <span style={{ color: c.faint, position: "relative" }}>puan</span>
             </div>
           )}
           <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 12px" }}>
@@ -184,12 +195,12 @@ export default function DashboardPage({ onNavigate }) {
         <div className="stat-card">
           <div className="stat-label" style={{ display: "flex", alignItems: "center", gap: 6 }}><Calendar size={13} />KATILIM</div>
           <div className="stat-value">{data ? <AnimatedNumber value={data.att_count} /> : "—"}</div>
-          <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>etkinlik</div>
+          <div style={{ fontSize: 11, color: c.muted, marginTop: 4 }}>etkinlik</div>
         </div>
         <div className="stat-card">
           <div className="stat-label" style={{ display: "flex", alignItems: "center", gap: 6 }}><Image size={13} />MEDYA</div>
           <div className="stat-value">{data ? <AnimatedNumber value={data.media_count} /> : "—"}</div>
-          <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>yükleme</div>
+          <div style={{ fontSize: 11, color: c.muted, marginTop: 4 }}>yükleme</div>
         </div>
       </div>
 
@@ -215,8 +226,8 @@ export default function DashboardPage({ onNavigate }) {
                         {thumb ? <img src={thumb} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : null}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.title}</div>
-                        <div style={{ fontSize: 11, color: "#888", display: "flex", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: c.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.title}</div>
+                        <div style={{ fontSize: 11, color: c.muted, display: "flex", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
                           <span style={{ display: "flex", alignItems: "center", gap: 3 }}><Clock size={10} />{formatDate(ev.event_date)}</span>
                           {ev.dr_origin && <span>{ev.dr_origin} → {ev.dr_dest}</span>}
                           {ev.dr_diff && <span style={{ color: DIFF_COLOR[ev.dr_diff] }}>{DIFF_LABEL[ev.dr_diff]}</span>}
@@ -247,8 +258,8 @@ export default function DashboardPage({ onNavigate }) {
                     <div style={{ display: "flex", gap: 10, padding: "10px 12px", alignItems: "flex-start" }}>
                       <div style={{ width: 4, borderRadius: 4, background: BADGE_COLOR[n.badge_type] || "#f5a623", flexShrink: 0, alignSelf: "stretch" }} />
                       <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", marginBottom: 3 }}>{n.title}</div>
-                        {n.body && <div style={{ fontSize: 12, color: "#888", lineHeight: 1.5 }}>{n.body}</div>}
+                        <div style={{ fontSize: 13, fontWeight: 700, color: c.text, marginBottom: 3 }}>{n.title}</div>
+                        {n.body && <div style={{ fontSize: 12, color: c.muted, lineHeight: 1.5 }}>{n.body}</div>}
                       </div>
                     </div>
                   </div>
@@ -271,7 +282,7 @@ export default function DashboardPage({ onNavigate }) {
                       <Star size={13} color="#f5a623" />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.title || t.key_name}</div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: c.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.title || t.key_name}</div>
                       <div style={{ fontSize: 11, color: "#f5a623", fontWeight: 700 }}>+{t.points} puan</div>
                     </div>
                   </div>
@@ -292,9 +303,9 @@ export default function DashboardPage({ onNavigate }) {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <span style={{ fontSize: 11, color: act.color, fontWeight: 700 }}>{act.label}</span>
                         <span style={{ fontSize: 11, color: "#888" }}> — </span>
-                        <span style={{ fontSize: 11, color: "#ccc", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.label}</span>
+                        <span style={{ fontSize: 11, color: c.sub, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.label}</span>
                       </div>
-                      <span style={{ fontSize: 10, color: "#555", flexShrink: 0 }}>{formatRelative(a.ts)}</span>
+                      <span style={{ fontSize: 10, color: c.faint, flexShrink: 0 }}>{formatRelative(a.ts)}</span>
                     </div>
                   );
                 })}
@@ -317,8 +328,8 @@ export default function DashboardPage({ onNavigate }) {
                   onMouseLeave={e => e.currentTarget.style.borderColor = "var(--border)"}
                 >
                   <Icon size={14} color="#f5a623" />
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "#ccc" }}>{label}</span>
-                  <ChevronRight size={12} color="#555" style={{ marginLeft: "auto" }} />
+                  <span style={{ fontSize: 12, fontWeight: 600, color: c.sub }}>{label}</span>
+                  <ChevronRight size={12} color={c.faint} style={{ marginLeft: "auto" }} />
                 </button>
               ))}
             </div>
