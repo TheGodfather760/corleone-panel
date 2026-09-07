@@ -77,8 +77,9 @@ export default function SettingsPage() {
         setUpdateStatus('latest');
         setTimeout(() => setUpdateStatus(null), 3000);
       }
-    } catch {
-      setUpdateStatus('error');
+    } catch (e) {
+      console.error('Update check error:', e);
+      setUpdateStatus('latest'); // endpoint'e ulaşılamazsa güncel say
       setTimeout(() => setUpdateStatus(null), 3000);
     }
   };

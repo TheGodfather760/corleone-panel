@@ -1,10 +1,10 @@
 {
-  "version": "0.1.0",
-  "notes": "İlk sürüm",
-  "pub_date": "2026-09-06T00:00:00Z",
+  "version": "0.5.0",
+  "notes": "Admin paneli sekme yapısı, haber/davet/dosya/üye/etkinlik yönetimi, versiyon bilgisi eklendi",
+  "pub_date": "2025-07-15T00:00:00Z",
   "platforms": {
     "windows-x86_64": {
-      "url": "https://corleoneteam.com.tr/panel/releases/Corleone Panel_0.1.0_x64-setup.exe",
+      "url": "https://corleoneteam.com.tr/panel/releases/Corleone Panel_0.5.0_x64-setup.exe",
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRdTZDOGVrODk5TTBTOElnb1FmU2xTaUFQdE1xa2ZQNERhWHROSE1KNkF1dlV5ZUt5bThqajQrd0tiL29SUmtzbGpIN1VsSWFnNDkvTzNBaHdrUXEvRmFYaFhEUFNLQVFRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg4NzEzOTgwCWZpbGU6Q29ybGVvbmUgUGFuZWxfMC4xLjBfeDY0LXNldHVwLmV4ZQpWKzQyUVdPWmYxalp4dEhmOWJyOUhwNW1TekJSNEZqdi9tYTFDaTlXaGNaZTBqY0FXVmh4Uk12alo0dWx1Y1J4ZlJSSHpURDBSTG10dnlJb3lQTXlDZz09Cg=="
     }
   }
