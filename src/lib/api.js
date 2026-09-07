@@ -57,3 +57,37 @@ export const profileApi = {
   saveSocial: (platform, value) => api.post("/auth/user-socials.php?action=save", { platform, value }),
   deleteSocial: (platform) => api.post("/auth/user-socials.php?action=delete", { platform }),
 };
+
+export const adminApi = {
+  // Üyeler
+  getUsers:       () => api.get("/auth/users-list.php"),
+  updateUser:     (data) => api.post("/auth/admin-user-action.php", data),
+
+  // Haberler
+  getNews:        () => api.get("/auth/dashboard.php?action=news"),
+  createNews:     (data) => api.post("/auth/dashboard.php?action=create_news", data),
+  deleteNews:     (id) => api.post("/auth/dashboard.php?action=delete_news", { id }),
+
+  // Etkinlik yönetimi
+  getEvents:      () => api.get("/auth/events-list.php?admin=1"),
+  createEvent:    (data) => api.post("/auth/events-list.php?action=create", data),
+  updateEvent:    (data) => api.post("/auth/events-list.php?action=update", data),
+  deleteEvent:    (id) => api.post("/auth/events-list.php?action=delete", { id }),
+  uploadEventMedia: (formData) => api.post("/auth/event-media.php?action=upload", formData, { headers: { "Content-Type": "multipart/form-data" } }),
+
+  // Davetler
+  getInvites:     () => api.get("/auth/users-list.php?action=invites"),
+  createInvite:   (data) => api.post("/auth/users-list.php?action=create_invite", data),
+  deleteInvite:   (id) => api.post("/auth/users-list.php?action=delete_invite", { id }),
+  getInviteRequests: () => api.get("/auth/invite-request.php?action=list"),
+  updateInviteRequest: (id, status) => api.post("/auth/invite-request.php?action=update", { id, status }),
+
+  // Dosya yönetimi
+  getDownloads:   () => api.get("/auth/downloads-list.php?admin=1"),
+  uploadDownload: (formData) => api.post("/auth/download-upload.php", formData, { headers: { "Content-Type": "multipart/form-data" } }),
+  updateDownload: (data) => api.post("/auth/download-edit.php", data),
+  deleteDownload: (id) => api.post("/auth/download-edit.php", { action: "delete", id }),
+
+  // Rota deposu
+  getRoutes:      () => api.get("/auth/users-list.php?action=routes"),
+};

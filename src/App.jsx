@@ -10,10 +10,22 @@ import EventsPage from "./pages/EventsPage";
 import DownloadsPage from "./pages/DownloadsPage";
 import MediaPage from "./pages/MediaPage";
 import SettingsPage from "./pages/SettingsPage";
+import AdminUsersPage from "./pages/admin/AdminUsersPage";
+import AdminNewsPage from "./pages/admin/AdminNewsPage";
+import AdminInvitesPage from "./pages/admin/AdminInvitesPage";
+import AdminDownloadsPage from "./pages/admin/AdminDownloadsPage";
+import AdminEventsPage from "./pages/admin/AdminEventsPage";
 
 function DashboardWrapper() {
   const navigate = useNavigate();
   return <DashboardPage onNavigate={(page) => navigate(`/${page}`)} />;
+}
+
+function AdminGuard({ children }) {
+  const { user } = useAuth();
+  if (!user) return null;
+  if (user.role !== "admin" && user.role !== "moderator") return <Navigate to="/dashboard" replace />;
+  return children;
 }
 
 function ProtectedRoutes() {
@@ -52,6 +64,11 @@ function ProtectedRoutes() {
             <Route path="/downloads"  element={<DownloadsPage />} />
             <Route path="/media"      element={<MediaPage />} />
             <Route path="/settings"   element={<SettingsPage />} />
+            <Route path="/admin/users"     element={<AdminGuard><AdminUsersPage /></AdminGuard>} />
+            <Route path="/admin/news"      element={<AdminGuard><AdminNewsPage /></AdminGuard>} />
+            <Route path="/admin/invites"   element={<AdminGuard><AdminInvitesPage /></AdminGuard>} />
+            <Route path="/admin/downloads" element={<AdminGuard><AdminDownloadsPage /></AdminGuard>} />
+            <Route path="/admin/events"    element={<AdminGuard><AdminEventsPage /></AdminGuard>} />
             <Route path="*"           element={<Navigate to={`/${settings.startPage}`} replace />} />
           </Routes>
         </motion.div>
