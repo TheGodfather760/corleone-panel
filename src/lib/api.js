@@ -64,9 +64,11 @@ export const adminApi = {
   updateUser:     (data) => api.post("/auth/admin-user-action.php", data),
 
   // Haberler
-  getNews:        () => api.get("/auth/dashboard.php?action=news"),
-  createNews:     (data) => api.post("/auth/dashboard.php?action=create_news", data),
-  deleteNews:     (id) => api.post("/auth/dashboard.php?action=delete_news", { id }),
+  getNews:        () => api.get("/auth/news.php?action=list"),
+  createNews:     (data) => api.post("/auth/news.php?action=create", data, { headers: { "Content-Type": "multipart/form-data" } }),
+  updateNews:     (data) => api.post("/auth/news.php?action=update", data),
+  toggleNews:     (id) => api.post("/auth/news.php?action=toggle", { id }),
+  deleteNews:     (id) => api.post("/auth/news.php?action=delete", { id }),
 
   // Etkinlik yönetimi
   getEvents:      () => api.get("/auth/events-list.php?admin=1"),
