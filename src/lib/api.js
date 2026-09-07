@@ -60,8 +60,9 @@ export const profileApi = {
 
 export const adminApi = {
   // Üyeler
-  getUsers:       () => api.get("/auth/users-list.php"),
-  updateUser:     (data) => api.post("/auth/admin-user-action.php", data),
+  getUsers:       () => api.get("/auth/admin-users.php?action=list"),
+  updateUser:     (data) => api.post("/auth/admin-users.php?action=update", data),
+  mailUser:       (userId, action) => api.post("/auth/admin-users.php?action=mail", { user_id: userId, action }),
 
   // Haberler
   getNews:        () => api.get("/auth/news.php?action=list"),
