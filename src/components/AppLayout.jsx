@@ -39,9 +39,8 @@ export default function AppLayout({ children }) {
         <div className="topbar-logo">
           <img src={logoSrc} alt="Corleone" style={{ height: 28 }} />
           {version && (
-            <span style={{ fontSize: 9, fontWeight: 700, color: "#f5a623", opacity: .6,
-              background: "rgba(245,166,35,.1)", border: "1px solid rgba(245,166,35,.2)",
-              padding: "1px 6px", borderRadius: 6, letterSpacing: .4 }}>
+            <span style={{ fontSize: 9, fontWeight: 700, color: "#fff",
+              background: "#555", padding: "2px 7px", borderRadius: 6, letterSpacing: .4 }}>
               v{version}
             </span>
           )}

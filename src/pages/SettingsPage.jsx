@@ -25,8 +25,8 @@ function Row({ label, desc, children }) {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
       <div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: "#ddd" }}>{label}</div>
-        {desc && <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>{desc}</div>}
+        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{label}</div>
+        {desc && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{desc}</div>}
       </div>
       <div style={{ flexShrink: 0 }}>{children}</div>
     </div>
@@ -35,7 +35,7 @@ function Row({ label, desc, children }) {
 
 function Toggle({ value, onChange }) {
   return (
-    <div onClick={() => onChange(!value)} style={{ width: 40, height: 22, borderRadius: 11, background: value ? "#f5a623" : "rgba(255,255,255,.1)", border: `1px solid ${value ? "#f5a623" : "rgba(255,255,255,.15)"}`, cursor: "pointer", position: "relative", transition: "all .2s", flexShrink: 0 }}>
+    <div onClick={() => onChange(!value)} style={{ width: 40, height: 22, borderRadius: 11, background: value ? "#f5a623" : "var(--bg-elevated)", border: `1px solid ${value ? "#f5a623" : "var(--border)"}`, cursor: "pointer", position: "relative", transition: "all .2s", flexShrink: 0 }}>
       <div style={{ position: "absolute", top: 2, left: value ? 20 : 2, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left .2s", boxShadow: "0 1px 4px rgba(0,0,0,.4)" }} />
     </div>
   );
@@ -43,10 +43,10 @@ function Toggle({ value, onChange }) {
 
 function SegmentedControl({ options, value, onChange }) {
   return (
-    <div style={{ display: "flex", background: "rgba(255,255,255,.06)", borderRadius: 8, padding: 3, gap: 2 }}>
+    <div style={{ display: "flex", background: "var(--bg-elevated)", borderRadius: 8, padding: 3, gap: 2 }}>
       {options.map(opt => (
         <button key={opt.value} onClick={() => onChange(opt.value)}
-          style={{ padding: "5px 14px", borderRadius: 6, border: "none", background: value === opt.value ? "rgba(245,166,35,.2)" : "transparent", color: value === opt.value ? "#f5a623" : "#888", fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all .2s", display: "flex", alignItems: "center", gap: 5 }}>
+          style={{ padding: "5px 14px", borderRadius: 6, border: "none", background: value === opt.value ? "rgba(245,166,35,.2)" : "transparent", color: value === opt.value ? "#f5a623" : "var(--text-muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all .2s", display: "flex", alignItems: "center", gap: 5 }}>
           {opt.icon && <opt.icon size={12} />}{opt.label}
         </button>
       ))}
@@ -138,7 +138,10 @@ export default function SettingsPage() {
                   { value: "logo",         src: "/logo-square.png" },
                 ].map(opt => (
                   <div key={opt.value} onClick={() => update("sidebarLogo", opt.value)}
-                    style={{ padding: 6, borderRadius: 8, border: `1px solid ${settings.sidebarLogo === opt.value ? "#f5a623" : "rgba(255,255,255,.1)"}`, background: settings.sidebarLogo === opt.value ? "rgba(245,166,35,.1)" : "rgba(255,255,255,.04)", cursor: "pointer", transition: "all .2s" }}>
+                    style={{ padding: 6, borderRadius: 8,
+                      border: `1px solid ${settings.sidebarLogo === opt.value ? "#f5a623" : "rgba(255,255,255,.1)"}`,
+                      background: settings.sidebarLogo === opt.value ? "rgba(245,166,35,.15)" : "#3a3a3a",
+                      cursor: "pointer", transition: "all .2s" }}>
                     <img src={opt.src} alt={opt.value} style={{ height: 22, display: "block" }} />
                   </div>
                 ))}
@@ -191,7 +194,7 @@ export default function SettingsPage() {
           <Section title="İndirmeler" icon={Download}>
             <Row label="Varsayılan Klasör" desc={settings.downloadPath || "Seçilmedi — her seferinde sorulur"}>
               <button onClick={pickDownloadPath}
-                style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 7, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)", color: "#ccc", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 7, background: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-secondary)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                 <FolderOpen size={13} /> Seç
               </button>
             </Row>
@@ -209,7 +212,7 @@ export default function SettingsPage() {
           <Section title="Uygulama" icon={AppWindow}>
             <Row label="Başlangıç Sayfası" desc="Uygulama açılınca hangi sayfa gösterilsin">
               <select value={settings.startPage} onChange={e => update("startPage", e.target.value)}
-                style={{ background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 7, color: "#ccc", fontSize: 12, padding: "6px 10px", cursor: "pointer", outline: "none" }}>
+                style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 7, color: "var(--text-secondary)", fontSize: 12, padding: "6px 10px", cursor: "pointer", outline: "none" }}>
                 <option value="dashboard">Dashboard</option>
                 <option value="events">Etkinlikler</option>
                 <option value="downloads">İndirmeler</option>
@@ -226,7 +229,7 @@ export default function SettingsPage() {
                   </button>
                 )}
                 <button onClick={checkUpdate} disabled={updateStatus === 'checking' || updateStatus === 'downloading'}
-                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 7, background: "rgba(255,255,255,.06)", border: `1px solid ${updateStatus === 'latest' ? 'rgba(46,204,113,.4)' : updateStatus === 'error' ? 'rgba(231,76,60,.4)' : 'rgba(255,255,255,.12)'}`, color: updateStatus === 'latest' ? '#2ecc71' : updateStatus === 'error' ? '#e74c3c' : '#ccc', fontSize: 12, fontWeight: 600, cursor: "pointer", opacity: (updateStatus === 'checking' || updateStatus === 'downloading') ? .6 : 1 }}>
+                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 7, background: "var(--bg-elevated)", border: `1px solid ${updateStatus === 'latest' ? 'rgba(46,204,113,.4)' : updateStatus === 'error' ? 'rgba(231,76,60,.4)' : 'var(--border)'}`, color: updateStatus === 'latest' ? '#2ecc71' : updateStatus === 'error' ? '#e74c3c' : 'var(--text-secondary)', fontSize: 12, fontWeight: 600, cursor: "pointer", opacity: (updateStatus === 'checking' || updateStatus === 'downloading') ? .6 : 1 }}>
                   <RefreshCw size={13} style={{ animation: (updateStatus === 'checking' || updateStatus === 'downloading') ? 'spin 1s linear infinite' : 'none' }} />
                   {updateStatus === 'checking' ? 'Kontrol ediliyor...' : updateStatus === 'latest' ? '✓ Güncel' : updateStatus === 'error' ? 'Hata' : updateStatus === 'downloading' ? 'İndiriliyor...' : 'Kontrol Et'}
                 </button>
@@ -243,7 +246,7 @@ export default function SettingsPage() {
               </span>
             </Row>
             <Row label="Geliştirici" desc="Corleone™ Team">
-              <span style={{ fontSize: 11, color: "#666" }}>corleoneteam.com.tr</span>
+              <span style={{ fontSize: 11, color: "var(--text-muted)" }}>corleoneteam.com.tr</span>
             </Row>
           </Section>
 
