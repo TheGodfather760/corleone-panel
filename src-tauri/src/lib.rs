@@ -105,10 +105,20 @@ async fn install_ets2_profile(zip_url: String, transfer_files: Vec<String>, toke
     let mut archive = zip::ZipArchive::new(cursor).map_err(|e| e.to_string())?;
     for i in 0..archive.len() {
         let mut file = archive.by_index(i).map_err(|e| e.to_string())?;
-        let outpath = profile_path.join(file.name());
-        if file.name().ends_with('/') {
+        let raw_name = file.name().to_string();
+        // İlk klasör segmentini strip et (örn. "436F726C656F6E65/save/" → "save/")
+        let stripped = raw_name
+            .splitn(2, '/')
+            .nth(1)
+            .unwrap_or(&raw_name);
+        if stripped.is_empty() { continue; } // kök klasörün kendisi
+        let outpath = profile_path.join(stripped);
+        if raw_name.ends_with('/') {
             std::fs::create_dir_all(&outpath).map_err(|e| e.to_string())?;
         } else {
+            if let Some(parent) = outpath.parent() {
+                std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+            }
             use std::io::Read;
             let mut buf = Vec::new();
             file.read_to_end(&mut buf).map_err(|e| e.to_string())?;

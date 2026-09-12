@@ -58,7 +58,7 @@ export default function AppLayout({ children }) {
   useEffect(() => {
     getVersion()
       .then(v => { setVersion(v); heartbeatApi.ping(v).catch(() => {}); })
-      .catch(() => { setVersion("0.5.5"); heartbeatApi.ping("0.5.5").catch(() => {}); });
+      .catch(() => { setVersion("0.5.6"); heartbeatApi.ping("0.5.6").catch(() => {}); });
   }, []);
 
   // Dışarı tıklayınca kapat
