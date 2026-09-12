@@ -16,15 +16,17 @@ export function AuthProvider({ children }) {
 
   const login = async (credentials) => {
     const res = await authApi.login(credentials);
-    if (res.data.token) localStorage.setItem('auth_token', res.data.token);
+    if (!res.data.success) throw new Error(res.data.message || "Giriş başarısız.");
+    if (res.data.token) localStorage.setItem("auth_token", res.data.token);
     const meRes = await authApi.me();
-    setUser(meRes.data.authenticated ? meRes.data.user : null);
+    if (!meRes.data.authenticated) throw new Error("Oturum doğrulanamadı.");
+    setUser(meRes.data.user);
     return res.data;
   };
 
   const logout = async () => {
     try { await authApi.logout(); } catch {}
-    localStorage.removeItem('auth_token');
+    localStorage.removeItem("auth_token");
     setUser(null);
   };
 

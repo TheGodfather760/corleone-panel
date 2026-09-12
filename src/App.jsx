@@ -3,7 +3,10 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 import { AuthProvider, useAuth } from "./lib/AuthContext";
 import { SettingsProvider, useSettings } from "./lib/SettingsContext";
+import { NotifProvider } from "./lib/NotifContext";
+import { UpdateProvider } from "./lib/UpdateContext";
 import AppLayout from "./components/AppLayout";
+import NotificationPoller from "./components/NotificationPoller";
 import IntroScreen from "./components/IntroScreen";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
@@ -75,9 +78,14 @@ export default function App() {
   return (
     <AuthProvider>
       <SettingsProvider>
-        <BrowserRouter>
-          <AppWithIntro />
-        </BrowserRouter>
+        <NotifProvider>
+          <UpdateProvider>
+            <BrowserRouter>
+              <NotificationPoller />
+              <AppWithIntro />
+            </BrowserRouter>
+          </UpdateProvider>
+        </NotifProvider>
       </SettingsProvider>
     </AuthProvider>
   );

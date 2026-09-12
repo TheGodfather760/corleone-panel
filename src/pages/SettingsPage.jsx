@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
 import { useSettings } from "../lib/SettingsContext";
 import { useAuth } from "../lib/AuthContext";
+import { useUpdate } from "../lib/UpdateContext";
 import { open } from "@tauri-apps/plugin-dialog";
-import { check } from "@tauri-apps/plugin-updater";
-import { relaunch } from "@tauri-apps/plugin-process";
 import { getVersion } from "@tauri-apps/api/app";
-import { Sun, Moon, Type, Bell, Download, AppWindow, LogOut, FolderOpen, RefreshCw, Info } from "lucide-react";
+import { Sun, Moon, Bell, Download, AppWindow, LogOut, FolderOpen, RefreshCw, Info } from "lucide-react";
 
 function Section({ title, icon: Icon, children }) {
   return (
@@ -57,47 +56,13 @@ function SegmentedControl({ options, value, onChange }) {
 export default function SettingsPage() {
   const { settings, update } = useSettings();
   const { logout } = useAuth();
+  const { updateInfo, status: updateStatus, lastChecked, checkUpdate, installUpdate } = useUpdate();
   const [saved, setSaved] = useState(false);
-  const [updateStatus, setUpdateStatus] = useState(null);
-  const [updateInfo, setUpdateInfo] = useState(null);
   const [version, setVersion] = useState("");
-  const [lastChecked, setLastChecked] = useState(null);
 
   useEffect(() => {
     getVersion().then(setVersion).catch(() => setVersion("0.5.0"));
   }, []);
-
-  const checkUpdate = async () => {
-    setUpdateStatus('checking');
-    try {
-      const update = await check();
-      if (update?.available) {
-        setUpdateInfo(update);
-        setUpdateStatus('available');
-      } else {
-        setUpdateStatus('latest');
-        setLastChecked(new Date());
-        setTimeout(() => setUpdateStatus(null), 3000);
-      }
-    } catch (e) {
-      console.error('Update check error:', e);
-      setUpdateStatus('latest');
-      setLastChecked(new Date());
-      setTimeout(() => setUpdateStatus(null), 3000);
-    }
-  };
-
-  const installUpdate = async () => {
-    if (!updateInfo) return;
-    setUpdateStatus('downloading');
-    try {
-      await updateInfo.downloadAndInstall();
-      await relaunch();
-    } catch {
-      setUpdateStatus('error');
-      setTimeout(() => setUpdateStatus(null), 3000);
-    }
-  };
 
   const handleSave = () => {
     setSaved(true);
@@ -128,7 +93,6 @@ export default function SettingsPage() {
 
         {/* Sol kolon */}
         <div>
-          {/* Görünüm */}
           <Section title="Görünüm" icon={Sun}>
             <Row label="Logo" desc="Üst bar logo seçimi">
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -152,8 +116,8 @@ export default function SettingsPage() {
                 value={settings.theme}
                 onChange={v => update("theme", v)}
                 options={[
-                  { value: "dark",      label: "Koyu",     icon: Moon },
-                  { value: "light",     label: "Açık",     icon: Sun  },
+                  { value: "dark",     label: "Koyu",     icon: Moon },
+                  { value: "light",    label: "Açık",     icon: Sun  },
                   { value: "corleone", label: "Corleone" },
                 ]}
               />
@@ -174,7 +138,6 @@ export default function SettingsPage() {
             </Row>
           </Section>
 
-          {/* Bildirimler */}
           <Section title="Bildirimler" icon={Bell}>
             <Row label="Etkinlik Hatırlatıcısı" desc="Etkinlikten önce bildirim al">
               <Toggle value={settings.eventReminder} onChange={v => update("eventReminder", v)} />
@@ -186,11 +149,19 @@ export default function SettingsPage() {
               <Toggle value={settings.downloadNotif} onChange={v => update("downloadNotif", v)} />
             </Row>
           </Section>
+
+          <Section title="Hesap" icon={LogOut}>
+            <Row label="Oturumu Kapat" desc="Mevcut oturumu sonlandır">
+              <button onClick={logout}
+                style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 7, background: "rgba(231,76,60,.1)", border: "1px solid rgba(231,76,60,.3)", color: "#e74c3c", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                <LogOut size={13} /> Çıkış Yap
+              </button>
+            </Row>
+          </Section>
         </div>
 
         {/* Sağ kolon */}
         <div>
-          {/* İndirmeler */}
           <Section title="İndirmeler" icon={Download}>
             <Row label="Varsayılan Klasör" desc={settings.downloadPath || "Seçilmedi — her seferinde sorulur"}>
               <button onClick={pickDownloadPath}
@@ -208,7 +179,6 @@ export default function SettingsPage() {
             )}
           </Section>
 
-          {/* Uygulama */}
           <Section title="Uygulama" icon={AppWindow}>
             <Row label="Başlangıç Sayfası" desc="Uygulama açılınca hangi sayfa gösterilsin">
               <select value={settings.startPage} onChange={e => update("startPage", e.target.value)}
@@ -223,28 +193,26 @@ export default function SettingsPage() {
             <Row label="Açılış Animasyonu" desc="Uygulama açılırken intro videoyu göster">
               <Toggle value={!settings.skipIntro} onChange={v => update("skipIntro", !v)} />
             </Row>
-            <Row label="Güncelleme Kontrolü" desc={`Güncel sürüm: v${version || '0.5.0'}${lastChecked ? ' · Son kontrol: ' + lastChecked.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) + ' ' + lastChecked.toLocaleDateString('tr-TR') : ''}`}>
+            <Row label="Güncelleme Kontrolü" desc={`Güncel sürüm: v${version || "0.5.0"}${lastChecked ? " · Son kontrol: " + lastChecked.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }) + " " + lastChecked.toLocaleDateString("tr-TR") : ""}`}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                {updateStatus === 'available' && (
+                {updateStatus === "available" && (
                   <button onClick={installUpdate}
                     style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 7, background: "rgba(46,204,113,.15)", border: "1px solid rgba(46,204,113,.4)", color: "#2ecc71", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                     ↓ {updateInfo?.version} Yükle
                   </button>
                 )}
-                <button onClick={checkUpdate} disabled={updateStatus === 'checking' || updateStatus === 'downloading'}
-                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 7, background: "var(--bg-elevated)", border: `1px solid ${updateStatus === 'latest' ? 'rgba(46,204,113,.4)' : updateStatus === 'error' ? 'rgba(231,76,60,.4)' : 'var(--border)'}`, color: updateStatus === 'latest' ? '#2ecc71' : updateStatus === 'error' ? '#e74c3c' : 'var(--text-secondary)', fontSize: 12, fontWeight: 600, cursor: "pointer", opacity: (updateStatus === 'checking' || updateStatus === 'downloading') ? .6 : 1 }}>
-                  <RefreshCw size={13} style={{ animation: (updateStatus === 'checking' || updateStatus === 'downloading') ? 'spin 1s linear infinite' : 'none' }} />
-                  {updateStatus === 'checking' ? 'Kontrol ediliyor...' : updateStatus === 'latest' ? '✓ Güncel' : updateStatus === 'error' ? 'Hata' : updateStatus === 'downloading' ? 'İndiriliyor...' : 'Kontrol Et'}
+                <button onClick={checkUpdate} disabled={updateStatus === "checking" || updateStatus === "downloading"}
+                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 7, background: "var(--bg-elevated)", border: `1px solid ${updateStatus === "latest" ? "rgba(46,204,113,.4)" : updateStatus === "error" ? "rgba(231,76,60,.4)" : "var(--border)"}`, color: updateStatus === "latest" ? "#2ecc71" : updateStatus === "error" ? "#e74c3c" : "var(--text-secondary)", fontSize: 12, fontWeight: 600, cursor: "pointer", opacity: (updateStatus === "checking" || updateStatus === "downloading") ? .6 : 1 }}>
+                  <RefreshCw size={13} style={{ animation: (updateStatus === "checking" || updateStatus === "downloading") ? "spin 1s linear infinite" : "none" }} />
+                  {updateStatus === "checking" ? "Kontrol ediliyor..." : updateStatus === "latest" ? "✓ Güncel" : updateStatus === "error" ? "Hata" : updateStatus === "downloading" ? "İndiriliyor..." : "Kontrol Et"}
                 </button>
               </div>
             </Row>
           </Section>
 
-          {/* Hakkında */}
           <Section title="Hakkında" icon={Info}>
             <Row label="Sürüm" desc="Corleone Panel">
-              <span style={{ fontSize: 12, fontWeight: 700, color: "#f5a623", background: "rgba(245,166,35,.1)",
-                border: "1px solid rgba(245,166,35,.2)", padding: "4px 12px", borderRadius: 7 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#f5a623", background: "rgba(245,166,35,.1)", border: "1px solid rgba(245,166,35,.2)", padding: "4px 12px", borderRadius: 7 }}>
                 v{version || "0.5.0"}
               </span>
             </Row>
@@ -252,17 +220,8 @@ export default function SettingsPage() {
               <span style={{ fontSize: 11, color: "var(--text-muted)" }}>corleoneteam.com.tr</span>
             </Row>
           </Section>
-
-          {/* Hesap */}
-          <Section title="Hesap" icon={LogOut}>
-            <Row label="Oturumu Kapat" desc="Mevcut oturumu sonlandır">
-              <button onClick={logout}
-                style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 7, background: "rgba(231,76,60,.1)", border: "1px solid rgba(231,76,60,.3)", color: "#e74c3c", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                <LogOut size={13} /> Çıkış Yap
-              </button>
-            </Row>
-          </Section>
         </div>
+
       </div>
     </>
   );

@@ -146,7 +146,18 @@ export default function DownloadsPage() {
         <div className="empty-state"><Download size={40} /><p>Henüz indirme yok.</p></div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
-          {downloads.map(item => (
+          {downloads.map(item => {
+            // versions[0] her zaman ana (en güncel) versiyon
+            const mainVer = item.versions?.[0] ?? {
+              version_id:    item.version_id,
+              version:       item.version,
+              original_name: item.original_name,
+              file_size:     item.file_size,
+              changelog:     item.changelog,
+              version_date:  item.version_date,
+            };
+            const otherVersions = item.versions?.slice(1) ?? [];
+            return (
             <div key={item.id} className="card" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {item.thumbnail && (
                 <img src={item.thumbnail} alt={item.title} style={{ width: "100%", height: 140, objectFit: "cover", borderRadius: 8 }} />
@@ -155,7 +166,7 @@ export default function DownloadsPage() {
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
                   <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{item.title}</h3>
-                  {item.version && <span className="badge badge-blue" style={{ flexShrink: 0 }}>v{item.version}</span>}
+                  {mainVer.version && <span className="badge badge-blue" style={{ flexShrink: 0 }}>v{mainVer.version}</span>}
                 </div>
 
                 {item.description && (
@@ -165,47 +176,47 @@ export default function DownloadsPage() {
                 )}
 
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
-                  {item.original_name && (
+                  {mainVer.original_name && (
                     <span style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
-                      <FileArchive size={11} />{item.original_name}
+                      <FileArchive size={11} />{mainVer.original_name}
                     </span>
                   )}
-                  {item.file_size && (
+                  {mainVer.file_size && (
                     <span style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
-                      <HardDrive size={11} />{formatSize(item.file_size)}
+                      <HardDrive size={11} />{formatSize(mainVer.file_size)}
                     </span>
                   )}
                   <span style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
                     <Download size={11} />{item.download_count || 0} indirme
                   </span>
                   <span style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
-                    <Clock size={11} />{formatDate(item.version_date || item.created_at)}
+                    <Clock size={11} />{formatDate(mainVer.version_date || item.created_at)}
                   </span>
                 </div>
 
-                {item.changelog && (
+                {mainVer.changelog && (
                   <div style={{ fontSize: 11, color: "var(--text-muted)", background: "var(--bg-elevated)", borderRadius: 6, padding: "8px 10px", marginBottom: 12, lineHeight: 1.6 }}>
-                    {item.changelog}
+                    {mainVer.changelog}
                   </div>
                 )}
               </div>
 
               <DownloadButton
-                downloadId={item.id} versionId={item.version_id} filename={item.original_name}
+                downloadId={item.id} versionId={mainVer.version_id} filename={mainVer.original_name}
                 dlState={dlState} onDownload={handleDownload} primary
               />
 
               {/* Eski sürümler */}
-              {Array.isArray(item.versions) && item.versions.length > 1 && (
+              {otherVersions.length > 0 && (
                 <div>
                   <button onClick={() => toggleVersions(item.id)} className="btn btn-ghost" style={{ width: "100%", justifyContent: "center", fontSize: 12 }}>
                     {openVersions[item.id] ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                    Eski Sürümler ({item.versions.length - 1})
+                    Eski Sürümler ({otherVersions.length})
                   </button>
 
                   {openVersions[item.id] && (
                     <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
-                      {item.versions.slice(1).map(v => (
+                      {otherVersions.map(v => (
                         <div key={v.version_id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--bg-elevated)", borderRadius: 8, padding: "8px 10px", gap: 8 }}>
                           <div style={{ minWidth: 0 }}>
                             <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)" }}>v{v.version}</span>
@@ -223,7 +234,8 @@ export default function DownloadsPage() {
                 </div>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </>

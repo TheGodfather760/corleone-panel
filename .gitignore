@@ -26,3 +26,7 @@ dist-ssr
 # Tauri updater signing keys - NEVER commit these!
 *.key
 *.key.pub
+
+# Build outputs
+installer-output/
+latest.json

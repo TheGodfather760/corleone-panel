@@ -115,7 +115,7 @@ export default function AdminUsersPage() {
                 <div style={{ padding: "12px 16px 14px", borderTop: "1px solid var(--border)", background: "var(--bg-elevated)", display: "flex", gap: 10, flexWrap: "wrap" }}>
                   <div style={{ flex: 1, minWidth: 200 }}>
                     <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 8, textTransform: "uppercase", letterSpacing: .6 }}>Bilgiler</div>
-                    {[["ID", u.id], ["Kayıt", u.created_at?.slice(0, 10)], ["Son Giriş", u.last_login?.slice(0, 10) || "—"], ["Puan", u.points ?? "—"]].map(([k, v]) => (
+                    {[["ID", u.id], ["Kayıt", u.created_at?.slice(0, 10)], ["Son Giriş", u.last_login?.slice(0, 10) || "—"], ["Son Görülme", u.last_seen?.slice(0, 16).replace("T", " ") || "—"], ["Uygulama", u.app_version ? `v${u.app_version}` : "—"], ["Puan", u.points ?? "—"]].map(([k, v]) => (
                       <div key={k} style={{ display: "flex", gap: 8, fontSize: 11, marginBottom: 4 }}>
                         <span style={{ color: "var(--text-muted)", width: 70 }}>{k}</span>
                         <span style={{ color: "var(--text-secondary)" }}>{v}</span>

@@ -150,8 +150,8 @@ body {
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
 
 [data-theme="corleone"] ::-webkit-scrollbar-thumb { background: rgba(245,166,35,0.2); }
 [data-theme="corleone"] ::-webkit-scrollbar-thumb:hover { background: rgba(245,166,35,0.4); }
@@ -175,6 +175,7 @@ body {
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   gap: 16px;
+  backdrop-filter: blur(8px);
 }
 
 .topbar-logo {
@@ -222,17 +223,31 @@ body {
   font-weight: 600;
   letter-spacing: 0.3px;
   white-space: nowrap;
+  position: relative;
 }
 
 .nav-btn:hover {
-  background: rgba(255,255,255,0.05);
-  color: var(--text-secondary);
+  background: rgba(255,255,255,0.06);
+  color: var(--text-primary);
+  transform: translateY(-1px);
 }
 
 .nav-btn.active {
   background: var(--accent-dim);
   border-color: var(--accent-border);
   color: var(--accent);
+}
+
+.nav-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px;
 }
 
 .nav-btn svg {
@@ -307,6 +322,11 @@ body {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 20px;
+  transition: border-color var(--transition-speed);
+}
+
+.card:hover {
+  border-color: rgba(255,255,255,0.12);
 }
 
 .card-grid {
@@ -371,15 +391,22 @@ body {
   border: none;
   transition: all 0.18s;
   text-decoration: none;
+  position: relative;
+  overflow: hidden;
 }
+
+.btn:active { transform: scale(0.97); }
 
 .btn-primary {
   background: var(--accent);
   color: #111;
+  box-shadow: 0 2px 8px rgba(245,166,35,0.25);
 }
 
 .btn-primary:hover {
   background: var(--accent-hover);
+  box-shadow: 0 4px 16px rgba(245,166,35,0.35);
+  transform: translateY(-1px);
 }
 
 .btn-ghost {
@@ -389,8 +416,9 @@ body {
 }
 
 .btn-ghost:hover {
-  background: rgba(255,255,255,0.05);
-  border-color: rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.18);
+  color: var(--text-primary);
 }
 
 /* ── INPUT ── */
@@ -403,12 +431,13 @@ body {
   color: var(--text-primary);
   font-size: 13px;
   outline: none;
-  transition: border-color 0.18s;
+  transition: border-color 0.18s, box-shadow 0.18s;
   font-family: inherit;
 }
 
 .input:focus {
   border-color: var(--accent-border);
+  box-shadow: 0 0 0 3px rgba(245,166,35,0.08);
 }
 
 .input::placeholder {
@@ -558,4 +587,78 @@ body {
 }
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* ── SKELETON LOADING ── */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-elevated) 25%, rgba(255,255,255,0.06) 50%, var(--bg-elevated) 75%);
+  background-size: 400px 100%;
+  animation: shimmer 1.4s ease infinite;
+  border-radius: 6px;
+}
+
+/* ── PAGE FADE-IN ── */
+@keyframes pageFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.page-content > * {
+  animation: pageFadeIn 0.22s ease;
+}
+
+/* ── STAT CARD HOVER ── */
+.stat-card {
+  transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-border);
+  box-shadow: 0 4px 20px rgba(245,166,35,0.08);
+}
+
+/* ── TOPBAR AVATAR TOOLTIP ── */
+.topbar-avatar {
+  transition: transform 0.18s, border-color 0.18s;
+}
+
+.topbar-avatar:hover {
+  transform: scale(1.08);
+}
+
+/* ── LOGIN GLOW ── */
+.login-box {
+  box-shadow: 0 24px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(245,166,35,0.06);
+  animation: pageFadeIn 0.3s ease;
+}
+
+.oauth-btn {
+  transition: all 0.18s;
+}
+
+.oauth-btn:hover {
+  opacity: 1 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.oauth-btn:active {
+  transform: scale(0.98);
+}
+
+/* ── EMPTY STATE ── */
+.empty-state {
+  animation: pageFadeIn 0.3s ease;
+}
+
+/* ── FOCUS VISIBLE ── */
+:focus-visible {
+  outline: 2px solid var(--accent-border);
+  outline-offset: 2px;
 }

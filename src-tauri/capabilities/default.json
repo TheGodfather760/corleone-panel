@@ -15,6 +15,20 @@
     "dialog:allow-open",
     "updater:default",
     "process:default",
-    "deep-link:default"
+    "deep-link:default",
+    "http:allow-fetch-send",
+    "http:allow-fetch-read-body",
+    "http:allow-fetch-cancel",
+    "notification:default",
+    "autostart:allow-enable",
+    "autostart:allow-disable",
+    "autostart:allow-is-enabled",
+    {
+      "identifier": "http:allow-fetch",
+      "allow": [
+        { "url": "https://corleoneteam.com.tr/**" },
+        { "url": "https://*.corleoneteam.com.tr/**" }
+      ]
+    }
   ]
 }

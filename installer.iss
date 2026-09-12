@@ -1,8 +1,8 @@
 ; Corleone Panel - Inno Setup Installer Script
-; Versiyon: 0.5.0
+; Versiyon: 0.5.2
 
 #define AppName "Corleone Panel"
-#define AppVersion "0.5.0"
+#define AppVersion "0.5.2"
 #define AppPublisher "Corleone Team"
 #define AppURL "https://corleoneteam.com.tr"
 #define AppExeName "corleone-panel.exe"
@@ -58,6 +58,8 @@ Name: "desktopicon"; Description: "Masaüstü kısayolu oluştur"; GroupDescript
 
 [Files]
 Source: "{#SourceDir}\{#AppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "src-tauri\nsis\sidebar.bmp"; DestDir: "{tmp}"; Flags: dontcopy
+Source: "src-tauri\nsis\setup-logotype-corleone.bmp"; DestDir: "{tmp}"; Flags: dontcopy
 
 [Icons]
 Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#AppExeName}"
@@ -72,6 +74,10 @@ Type: filesandordirs; Name: "{app}"
 [Code]
 procedure InitializeWizard();
 begin
+  // BMP dosyalarını tmp'ye çıkar
+  ExtractTemporaryFile('sidebar.bmp');
+  ExtractTemporaryFile('setup-logotype-corleone.bmp');
+
   // Tüm arka planlar beyaz
   WizardForm.Color := clWhite;
   WizardForm.Font.Color := clBlack;
@@ -108,4 +114,9 @@ begin
   WizardForm.InnerPage.Color := clWhite;
   WizardForm.WelcomeLabel1.Font.Color := clBlack;
   WizardForm.WelcomeLabel2.Font.Color := $333333;
+
+  if CurPageID = wpWelcome then
+    WizardForm.WizardBitmapImage.Bitmap.LoadFromFile(ExpandConstant('{tmp}\sidebar.bmp'))
+  else
+    WizardForm.WizardBitmapImage.Bitmap.LoadFromFile(ExpandConstant('{tmp}\setup-logotype-corleone.bmp'));
 end;
