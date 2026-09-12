@@ -13,7 +13,6 @@ function buildUrl(url) {
   return BASE_URL + url;
 }
 
-// Tauri ortamında mıyız?
 const isTauri = typeof window !== "undefined" && window.__TAURI_INTERNALS__ !== undefined;
 
 async function request(method, url, data = null, isFormData = false) {
@@ -35,8 +34,21 @@ async function request(method, url, data = null, isFormData = false) {
   }
 
   const json = await res.json();
-  // axios uyumlu format döndür
   return { data: json, status: res.status };
+}
+
+function xhrPost(url, formData, onProgress) {
+  return new Promise((resolve, reject) => {
+    const token = localStorage.getItem("auth_token");
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url);
+    if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    xhr.responseType = "json";
+    if (onProgress) xhr.upload.onprogress = e => { if (e.lengthComputable) onProgress(Math.round(e.loaded / e.total * 100)); };
+    xhr.onload = () => resolve({ data: xhr.response, status: xhr.status });
+    xhr.onerror = () => reject(new Error("Baglanti hatasi."));
+    xhr.send(formData);
+  });
 }
 
 export const api = {
@@ -44,8 +56,6 @@ export const api = {
   post: (url, data, cfg) => request("POST", url, data, cfg?.headers?.["Content-Type"] === "multipart/form-data"),
   defaults: { baseURL: BASE_URL },
 };
-
-// axios interceptor yerine direkt token ekliyoruz request() içinde
 
 export const authApi = {
   login: (data) => request("POST", "/auth/login.php", data),
@@ -107,6 +117,8 @@ export const adminApi = {
   updateUser:     (data) => request("POST", "/auth/admin-users.php?action=update", data),
   mailUser:       (userId, action) => request("POST", "/auth/admin-users.php?action=mail", { user_id: userId, action }),
 
+  getEts2ProfileFiles: () => request("GET", "/auth/ets2-profile-files.php"),
+
   getNews:        () => request("GET", "/auth/news.php?action=list"),
   createNews:     (data) => request("POST", "/auth/news.php?action=create", data, true),
   updateNews:     (data) => request("POST", "/auth/news.php?action=update", data),
@@ -131,9 +143,33 @@ export const adminApi = {
   deleteInviteRequest: (id) => request("POST", "/auth/invites.php?action=delete_request", { id }),
 
   getDownloads:   () => request("GET", "/auth/downloads-list.php?admin=1"),
-  uploadDownload: (formData) => request("POST", "/auth/download-upload.php", formData, true),
-  updateDownload: (data) => request("POST", "/auth/download-edit.php", data),
-  deleteDownload: (id) => request("POST", "/auth/download-edit.php", { action: "delete", id }),
+  uploadDownload: (formData) => xhrPost("https://corleoneteam.com.tr/api/auth/download-upload.php", formData),
+  uploadFile:     (formData, onProgress) => xhrPost("https://corleoneteam.com.tr/api/auth/download-file-manager.php", formData, onProgress),
+  listFiles:      () => request("GET", "/auth/download-file-manager.php?action=list"),
+  deleteFile:     (name) => request("POST", "/auth/download-file-manager.php?action=delete", { name }),
+  updateDownload: (data) => request("POST", "/auth/download-edit.php?action=update", data),
+  addVersion:     (downloadId, version, changelog, profileZipUrl, file) => {
+    return new Promise((resolve, reject) => {
+      const token = localStorage.getItem("auth_token");
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = reader.result.split(",")[1];
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", "https://corleoneteam.com.tr/api/auth/download-edit.php?action=add_version");
+        if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.responseType = "json";
+        xhr.onload = () => resolve({ data: xhr.response, status: xhr.status });
+        xhr.onerror = () => reject(new Error("Baglanti hatasi."));
+        xhr.send(JSON.stringify({ download_id: downloadId, version, changelog, profile_zip_url: profileZipUrl, file_base64: base64, file_name: file.name }));
+      };
+      reader.onerror = () => reject(new Error("Dosya okunamadi."));
+      reader.readAsDataURL(file);
+    });
+  },
+  updateVersion:  (data) => request("POST", "/auth/download-edit.php?action=update_version", data),
+  deleteVersion:  (version_id) => request("POST", "/auth/download-edit.php?action=delete_version", { version_id }),
+  deleteDownload: (id) => request("POST", "/auth/download-edit.php?action=delete", { id }),
 
   getRoutes: () => request("GET", "/auth/users-list.php?action=routes"),
 };

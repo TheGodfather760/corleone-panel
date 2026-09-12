@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { downloadsApi, api } from "../lib/api";
-import { Download, FileArchive, Clock, HardDrive, ChevronDown, ChevronUp, CheckCircle, AlertCircle } from "lucide-react";
+import { Download, FileArchive, Clock, HardDrive, ChevronDown, ChevronUp, CheckCircle, AlertCircle, Gamepad2, X, ShieldCheck } from "lucide-react";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeFile } from "@tauri-apps/plugin-fs";
+import { invoke } from "@tauri-apps/api/core";
 
 function formatSize(bytes) {
   if (!bytes) return "—";
@@ -100,6 +101,13 @@ export default function DownloadsPage() {
   const [downloads, setDownloads]       = useState([]);
   const [loading, setLoading]           = useState(true);
   const [openVersions, setOpenVersions] = useState({});
+  const [ets2Modal, setEts2Modal]       = useState(null); // { profileZipUrl, version }
+  const [ets2Step, setEts2Step]         = useState('idle'); // idle | scanning | confirm | installing | done | error
+  const [ets2Found, setEts2Found]       = useState(false);
+  const [ets2Files, setEts2Files]       = useState([]);
+  const [ets2Selected, setEts2Selected] = useState([]);
+  const [ets2InstalledVer, setEts2InstalledVer] = useState(null);
+  const [ets2Msg, setEts2Msg]           = useState('');
   const dlState = useDownloadState();
 
   useEffect(() => {
@@ -109,6 +117,43 @@ export default function DownloadsPage() {
   }, []);
 
   const toggleVersions = (id) => setOpenVersions(prev => ({ ...prev, [id]: !prev[id] }));
+
+  const openEts2Modal = useCallback(async (profileZipUrl, version) => {
+    setEts2Modal({ profileZipUrl, version });
+    setEts2Step('scanning');
+    setEts2Msg('');
+    try {
+      const result = await invoke('get_ets2_profile_status');
+      setEts2Found(result.found);
+      setEts2Files(result.transferable || []);
+      setEts2Selected(result.transferable || []);
+      setEts2InstalledVer(result.installed_version || null);
+      setEts2Step('confirm');
+    } catch (e) {
+      setEts2Msg(e?.toString() || 'Tarama başarısız.');
+      setEts2Step('error');
+    }
+  }, []);
+
+  const closeEts2Modal = () => { setEts2Modal(null); setEts2Step('idle'); };
+
+  const runInstall = async () => {
+    setEts2Step('installing');
+    setEts2Msg('');
+    try {
+      const token = localStorage.getItem('auth_token') || '';
+      await invoke('install_ets2_profile', {
+        zipUrl: ets2Modal.profileZipUrl,
+        transferFiles: ets2Selected,
+        token,
+        version: ets2Modal.version || '',
+      });
+      setEts2Step('done');
+    } catch (e) {
+      setEts2Msg(e?.toString() || 'Kurulum başarısız.');
+      setEts2Step('error');
+    }
+  };
 
   const handleDownload = async (downloadId, versionId, filename) => {
     const key = `${downloadId}-${versionId}`;
@@ -137,6 +182,101 @@ export default function DownloadsPage() {
 
   return (
     <>
+      {/* ETS2 Profil Modal */}
+      {ets2Modal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#1a1714', border: '1px solid rgba(255,255,255,.1)', borderRadius: 14, width: 420, maxWidth: '90vw', padding: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Gamepad2 size={18} color="#f5a623" />
+                <span style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>ETS2 Profil Kurulumu</span>
+                {ets2Modal.version && <span style={{ fontSize: 10, background: 'rgba(245,166,35,.15)', color: '#f5a623', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>{ets2Modal.version}</span>}
+              </div>
+              <button onClick={closeEts2Modal} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer' }}><X size={16} /></button>
+            </div>
+
+            {ets2Step === 'scanning' && (
+              <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)', fontSize: 13 }}>
+                <div style={{ marginBottom: 10 }}>Profil taranıyor...</div>
+                <div style={{ width: 32, height: 32, border: '3px solid rgba(245,166,35,.2)', borderTopColor: '#f5a623', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto' }} />
+              </div>
+            )}
+
+            {ets2Step === 'confirm' && (
+              <>
+                <div style={{ fontSize: 12, color: ets2Found ? '#2ecc71' : 'var(--text-muted)', background: ets2Found ? 'rgba(39,174,96,.08)' : 'var(--bg-elevated)', border: `1px solid ${ets2Found ? 'rgba(39,174,96,.2)' : 'var(--border)'}`, borderRadius: 8, padding: '10px 12px', marginBottom: 16 }}>
+                  {ets2Found ? (
+                    <div>
+                      <div>&#10003; Mevcut Corleone profili bulundu.</div>
+                      {ets2InstalledVer && (
+                        <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 11, color: '#888' }}>Kurulu versiyon:</span>
+                          <span style={{ fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,.08)', padding: '2px 8px', borderRadius: 20 }}>{ets2InstalledVer}</span>
+                          {ets2Modal.version && ets2InstalledVer !== ets2Modal.version && (
+                            <>
+                              <span style={{ fontSize: 11, color: '#888' }}>&rarr;</span>
+                              <span style={{ fontSize: 11, fontWeight: 700, background: 'rgba(245,166,35,.15)', color: '#f5a623', padding: '2px 8px', borderRadius: 20 }}>{ets2Modal.version}</span>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ) : 'Mevcut profil bulunamadi — temiz kurulum yapilacak.'}
+                </div>
+                {ets2Found && ets2Files.length > 0 && (
+                  <>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: .6 }}>Yeni profile aktarılacak dosyalar</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
+                      {ets2Files.map(f => (
+                        <label key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12, color: 'var(--text-secondary)' }}>
+                          <input type="checkbox" checked={ets2Selected.includes(f)}
+                            onChange={e => setEts2Selected(prev => e.target.checked ? [...prev, f] : prev.filter(x => x !== f))}
+                            style={{ accentColor: '#f5a623' }} />
+                          {f}
+                        </label>
+                      ))}
+                    </div>
+                  </>
+                )}
+                <div style={{ fontSize: 11, color: '#f5a623', background: 'rgba(245,166,35,.06)', border: '1px solid rgba(245,166,35,.15)', borderRadius: 8, padding: '8px 12px', marginBottom: 18 }}>
+                  ⚠ Mevcut profil klasörü yedeklenip silinecek, yerine yeni profil kurulacak.
+                </div>
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                  <button onClick={closeEts2Modal} style={{ padding: '8px 16px', borderRadius: 8, background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer' }}>İptal</button>
+                  <button onClick={runInstall} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px', borderRadius: 8, background: '#f5a623', border: 'none', color: '#000', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                    <ShieldCheck size={14} /> Yedekle ve Kur
+                  </button>
+                </div>
+              </>
+            )}
+
+            {ets2Step === 'installing' && (
+              <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)', fontSize: 13 }}>
+                <div style={{ marginBottom: 10 }}>Kurulum yapılıyor...</div>
+                <div style={{ width: 32, height: 32, border: '3px solid rgba(245,166,35,.2)', borderTopColor: '#f5a623', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto' }} />
+              </div>
+            )}
+
+            {ets2Step === 'done' && (
+              <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                <CheckCircle size={40} color="#2ecc71" style={{ marginBottom: 12 }} />
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 6 }}>Kurulum tamamlandı!</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 18 }}>ETS2 profilin başarıyla güncellendi.</div>
+                <button onClick={closeEts2Modal} style={{ padding: '8px 24px', borderRadius: 8, background: '#f5a623', border: 'none', color: '#000', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Kapat</button>
+              </div>
+            )}
+
+            {ets2Step === 'error' && (
+              <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                <AlertCircle size={40} color="#e74c3c" style={{ marginBottom: 12 }} />
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 6 }}>Hata oluştu</div>
+                <div style={{ fontSize: 11, color: '#e74c3c', marginBottom: 18, wordBreak: 'break-all' }}>{ets2Msg}</div>
+                <button onClick={closeEts2Modal} style={{ padding: '8px 24px', borderRadius: 8, background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer' }}>Kapat</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       <div className="page-header">
         <h1 className="page-title">İndirmeler</h1>
         <p className="page-subtitle">{downloads.length} dosya</p>
@@ -166,7 +306,7 @@ export default function DownloadsPage() {
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
                   <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{item.title}</h3>
-                  {mainVer.version && <span className="badge badge-blue" style={{ flexShrink: 0 }}>v{mainVer.version}</span>}
+                  {mainVer.version && <span className="badge badge-blue" style={{ flexShrink: 0 }}>{mainVer.version.startsWith('v') || mainVer.version.startsWith('V') ? mainVer.version : `v${mainVer.version}`}</span>}
                 </div>
 
                 {item.description && (
@@ -206,6 +346,16 @@ export default function DownloadsPage() {
                 dlState={dlState} onDownload={handleDownload} primary
               />
 
+              {mainVer.profile_zip_url && (
+                <button
+                  onClick={() => openEts2Modal(mainVer.profile_zip_url, mainVer.version)}
+                  className="btn btn-ghost"
+                  style={{ width: '100%', justifyContent: 'center', fontSize: 13, gap: 6, borderColor: 'rgba(245,166,35,.3)', color: '#f5a623' }}
+                >
+                  <Gamepad2 size={14} /> ETS2 Profil Kur
+                </button>
+              )}
+
               {/* Eski sürümler */}
               {otherVersions.length > 0 && (
                 <div>
@@ -219,7 +369,7 @@ export default function DownloadsPage() {
                       {otherVersions.map(v => (
                         <div key={v.version_id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--bg-elevated)", borderRadius: 8, padding: "8px 10px", gap: 8 }}>
                           <div style={{ minWidth: 0 }}>
-                            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)" }}>v{v.version}</span>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)" }}>{v.version.startsWith('v') || v.version.startsWith('V') ? v.version : `v${v.version}`}</span>
                             {v.original_name && <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 8 }}>{v.original_name}</span>}
                             {v.file_size && <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 8 }}>{formatSize(v.file_size)}</span>}
                           </div>
