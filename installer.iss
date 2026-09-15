@@ -1,8 +1,8 @@
 ; Corleone Panel - Inno Setup Installer Script
-; Versiyon: 0.5.6
+; Versiyon: 0.6.1
 
 #define AppName "Corleone Panel"
-#define AppVersion "0.5.6"
+#define AppVersion "0.6.1"
 #define AppPublisher "Corleone Team"
 #define AppURL "https://corleoneteam.com.tr"
 #define AppExeName "corleone-panel.exe"
