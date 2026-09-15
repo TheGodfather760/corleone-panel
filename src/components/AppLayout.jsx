@@ -126,7 +126,7 @@ export default function AppLayout({ children }) {
   useEffect(() => {
     getVersion()
       .then(v => { setVersion(v); heartbeatApi.ping(v).catch(() => {}); })
-      .catch(() => { setVersion("0.6.0"); heartbeatApi.ping("0.6.0").catch(() => {}); });
+      .catch(() => { setVersion("0.6.1"); heartbeatApi.ping("0.6.1").catch(() => {}); });
   }, []);
 
   // Dışarı tıklayınca kapat
