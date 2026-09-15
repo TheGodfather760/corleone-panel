@@ -102,12 +102,19 @@ export default function DownloadsPage() {
   const [loading, setLoading]           = useState(true);
   const [openVersions, setOpenVersions] = useState({});
   const [ets2Modal, setEts2Modal]       = useState(null); // { profileZipUrl, version }
-  const [ets2Step, setEts2Step]         = useState('idle'); // idle | scanning | confirm | installing | done | error
+  const [ets2Step, setEts2Step]         = useState('idle');
   const [ets2Found, setEts2Found]       = useState(false);
   const [ets2Files, setEts2Files]       = useState([]);
   const [ets2Selected, setEts2Selected] = useState([]);
   const [ets2InstalledVer, setEts2InstalledVer] = useState(null);
   const [ets2Msg, setEts2Msg]           = useState('');
+  const [atsModal, setAtsModal]         = useState(null); // { profileZipUrl, version }
+  const [atsStep, setAtsStep]           = useState('idle');
+  const [atsFound, setAtsFound]         = useState(false);
+  const [atsFiles, setAtsFiles]         = useState([]);
+  const [atsSelected, setAtsSelected]   = useState([]);
+  const [atsInstalledVer, setAtsInstalledVer] = useState(null);
+  const [atsMsg, setAtsMsg]             = useState('');
   const dlState = useDownloadState();
 
   useEffect(() => {
@@ -155,6 +162,43 @@ export default function DownloadsPage() {
     }
   };
 
+  const openAtsModal = useCallback(async (profileZipUrl, version) => {
+    setAtsModal({ profileZipUrl, version });
+    setAtsStep('scanning');
+    setAtsMsg('');
+    try {
+      const result = await invoke('get_ats_profile_status');
+      setAtsFound(result.found);
+      setAtsFiles(result.transferable || []);
+      setAtsSelected(result.transferable || []);
+      setAtsInstalledVer(result.installed_version || null);
+      setAtsStep('confirm');
+    } catch (e) {
+      setAtsMsg(e?.toString() || 'Tarama başarısız.');
+      setAtsStep('error');
+    }
+  }, []);
+
+  const closeAtsModal = () => { setAtsModal(null); setAtsStep('idle'); };
+
+  const runAtsInstall = async () => {
+    setAtsStep('installing');
+    setAtsMsg('');
+    try {
+      const token = localStorage.getItem('auth_token') || '';
+      await invoke('install_ats_profile', {
+        zipUrl: atsModal.profileZipUrl,
+        transferFiles: atsSelected,
+        token,
+        version: atsModal.version || '',
+      });
+      setAtsStep('done');
+    } catch (e) {
+      setAtsMsg(e?.toString() || 'Kurulum başarısız.');
+      setAtsStep('error');
+    }
+  };
+
   const handleDownload = async (downloadId, versionId, filename) => {
     const key = `${downloadId}-${versionId}`;
     const token = localStorage.getItem('auth_token');
@@ -182,6 +226,101 @@ export default function DownloadsPage() {
 
   return (
     <>
+      {/* ATS Profil Modal */}
+      {atsModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#1a1714', border: '1px solid rgba(255,255,255,.1)', borderRadius: 14, width: 420, maxWidth: '90vw', padding: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Gamepad2 size={18} color="#3498db" />
+                <span style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>ATS Profil Kurulumu</span>
+                {atsModal.version && <span style={{ fontSize: 10, background: 'rgba(52,152,219,.15)', color: '#3498db', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>{atsModal.version}</span>}
+              </div>
+              <button onClick={closeAtsModal} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer' }}><X size={16} /></button>
+            </div>
+
+            {atsStep === 'scanning' && (
+              <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)', fontSize: 13 }}>
+                <div style={{ marginBottom: 10 }}>Profil taranıyor...</div>
+                <div style={{ width: 32, height: 32, border: '3px solid rgba(52,152,219,.2)', borderTopColor: '#3498db', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto' }} />
+              </div>
+            )}
+
+            {atsStep === 'confirm' && (
+              <>
+                <div style={{ fontSize: 12, color: atsFound ? '#2ecc71' : 'var(--text-muted)', background: atsFound ? 'rgba(39,174,96,.08)' : 'var(--bg-elevated)', border: `1px solid ${atsFound ? 'rgba(39,174,96,.2)' : 'var(--border)'}`, borderRadius: 8, padding: '10px 12px', marginBottom: 16 }}>
+                  {atsFound ? (
+                    <div>
+                      <div>&#10003; Mevcut Corleone profili bulundu.</div>
+                      {atsInstalledVer && (
+                        <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 11, color: '#888' }}>Kurulu versiyon:</span>
+                          <span style={{ fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,.08)', padding: '2px 8px', borderRadius: 20 }}>{atsInstalledVer}</span>
+                          {atsModal.version && atsInstalledVer !== atsModal.version && (
+                            <>
+                              <span style={{ fontSize: 11, color: '#888' }}>&rarr;</span>
+                              <span style={{ fontSize: 11, fontWeight: 700, background: 'rgba(52,152,219,.15)', color: '#3498db', padding: '2px 8px', borderRadius: 20 }}>{atsModal.version}</span>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ) : 'Mevcut profil bulunamadı — temiz kurulum yapılacak.'}
+                </div>
+                {atsFound && atsFiles.length > 0 && (
+                  <>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: .6 }}>Yeni profile aktarılacak dosyalar</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
+                      {atsFiles.map(f => (
+                        <label key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12, color: 'var(--text-secondary)' }}>
+                          <input type="checkbox" checked={atsSelected.includes(f)}
+                            onChange={e => setAtsSelected(prev => e.target.checked ? [...prev, f] : prev.filter(x => x !== f))}
+                            style={{ accentColor: '#3498db' }} />
+                          {f}
+                        </label>
+                      ))}
+                    </div>
+                  </>
+                )}
+                <div style={{ fontSize: 11, color: '#3498db', background: 'rgba(52,152,219,.06)', border: '1px solid rgba(52,152,219,.15)', borderRadius: 8, padding: '8px 12px', marginBottom: 18 }}>
+                  ⚠ Mevcut profil klasörü yedeklenip silinecek, yerine yeni profil kurulacak.
+                </div>
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                  <button onClick={closeAtsModal} style={{ padding: '8px 16px', borderRadius: 8, background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer' }}>İptal</button>
+                  <button onClick={runAtsInstall} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px', borderRadius: 8, background: '#3498db', border: 'none', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                    <ShieldCheck size={14} /> Yedekle ve Kur
+                  </button>
+                </div>
+              </>
+            )}
+
+            {atsStep === 'installing' && (
+              <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)', fontSize: 13 }}>
+                <div style={{ marginBottom: 10 }}>Kurulum yapılıyor...</div>
+                <div style={{ width: 32, height: 32, border: '3px solid rgba(52,152,219,.2)', borderTopColor: '#3498db', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto' }} />
+              </div>
+            )}
+
+            {atsStep === 'done' && (
+              <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                <CheckCircle size={40} color="#2ecc71" style={{ marginBottom: 12 }} />
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 6 }}>Kurulum tamamlandı!</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 18 }}>ATS profilin başarıyla güncellendi.</div>
+                <button onClick={closeAtsModal} style={{ padding: '8px 24px', borderRadius: 8, background: '#3498db', border: 'none', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Kapat</button>
+              </div>
+            )}
+
+            {atsStep === 'error' && (
+              <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                <AlertCircle size={40} color="#e74c3c" style={{ marginBottom: 12 }} />
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 6 }}>Hata oluştu</div>
+                <div style={{ fontSize: 11, color: '#e74c3c', marginBottom: 18, wordBreak: 'break-all' }}>{atsMsg}</div>
+                <button onClick={closeAtsModal} style={{ padding: '8px 24px', borderRadius: 8, background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer' }}>Kapat</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       {/* ETS2 Profil Modal */}
       {ets2Modal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -346,13 +485,23 @@ export default function DownloadsPage() {
                 dlState={dlState} onDownload={handleDownload} primary
               />
 
-              {mainVer.profile_zip_url && (
+              {mainVer.profile_zip_url && (item.category === 'ets2_profile' || !item.category || item.category === 'general' || item.category === 'mod') && (
                 <button
                   onClick={() => openEts2Modal(mainVer.profile_zip_url, mainVer.version)}
                   className="btn btn-ghost"
                   style={{ width: '100%', justifyContent: 'center', fontSize: 13, gap: 6, borderColor: 'rgba(245,166,35,.3)', color: '#f5a623' }}
                 >
                   <Gamepad2 size={14} /> ETS2 Profil Kur
+                </button>
+              )}
+
+              {mainVer.profile_zip_url && item.category === 'ats_profile' && (
+                <button
+                  onClick={() => openAtsModal(mainVer.profile_zip_url, mainVer.version)}
+                  className="btn btn-ghost"
+                  style={{ width: '100%', justifyContent: 'center', fontSize: 13, gap: 6, borderColor: 'rgba(52,152,219,.3)', color: '#3498db' }}
+                >
+                  <Gamepad2 size={14} /> ATS Profil Kur
                 </button>
               )}
 

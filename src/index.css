@@ -1,4 +1,20 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;600;700;800&family=Share+Tech+Mono&family=Ubuntu:wght@400;500;700&display=swap');
+
 :root {
+  /* C-ONE kart boyutları — responsive */
+  --c1-hero-w:    clamp(160px, 18vw, 300px);
+  --c1-hero-h:    clamp(230px, 26vw, 430px);
+  --c1-hero-w-sm: clamp(120px, 14vw, 240px);
+  --c1-hero-h-sm: clamp(170px, 20vw, 340px);
+  --c1-card1-w:   clamp(90px,  11vw, 180px);
+  --c1-card1-h:   clamp(140px, 17vw, 270px);
+  --c1-card2-w:   clamp(70px,  8.5vw, 140px);
+  --c1-card2-h:   clamp(110px, 13vw, 210px);
+  --c1-card3-w:   clamp(55px,  6.5vw, 110px);
+  --c1-card3-h:   clamp(85px,  10vw, 165px);
+  --c1-menu-w:    clamp(220px, 22vw, 340px);
+  --c1-modal-w:   clamp(320px, 50vw, 700px);
+  --c1-search-w:  clamp(300px, 40vw, 560px);
   --bg-primary: #1a1a1a;
   --bg-secondary: #222222;
   --bg-card: #2b2b2b;
@@ -137,6 +153,31 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
+
+@font-face {
+  font-family: 'LemonMilk';
+  src: url('/fonts/LEMONMILK-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'LemonMilk';
+  src: url('/fonts/LEMONMILK-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'LemonMilk';
+  src: url('/fonts/LEMONMILK-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'LemonMilk';
+  src: url('/fonts/LEMONMILK-Light.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+}
 
 body {
   font-family: 'Segoe UI', sans-serif;

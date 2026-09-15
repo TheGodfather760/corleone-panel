@@ -6,6 +6,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 export default function LoginPage() {
   const { login, setUser } = useAuth();
   const [form, setForm] = useState({ email: "", password: "" });
+  const [rememberMe, setRememberMe] = useState(() => localStorage.getItem("remember_me") === "1");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [oauthPolling, setOauthPolling] = useState(""); // 'discord' | 'google' | 'steam' | ''
@@ -20,7 +21,9 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      await login(form);
+      await login(form, rememberMe);
+      if (rememberMe) localStorage.setItem("remember_me", "1");
+      else localStorage.removeItem("remember_me");
     } catch (err) {
       setError(err.message || "Giriş başarısız.");
     } finally {
@@ -72,6 +75,21 @@ export default function LoginPage() {
             onChange={(e) => setForm({ ...form, password: e.target.value })}
           />
           {error && <p style={{ fontSize: 12, color: "#e74c3c" }}>{error}</p>}
+          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", userSelect: "none" }}>
+            <div
+              onClick={() => setRememberMe(v => !v)}
+              style={{
+                width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+                border: `1.5px solid ${rememberMe ? "#f5a623" : "rgba(255,255,255,.2)"}`,
+                background: rememberMe ? "#f5a623" : "transparent",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                transition: "all .15s",
+              }}
+            >
+              {rememberMe && <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="#111" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+            </div>
+            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Beni hatırla</span>
+          </label>
           <button type="submit" className="btn btn-primary" style={{ width: "100%", justifyContent: "center", padding: "11px" }} disabled={loading}>
             {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
           </button>

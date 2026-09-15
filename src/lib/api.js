@@ -101,6 +101,18 @@ export const profileApi = {
   deleteSocial: (platform) => request("POST", "/auth/user-socials.php?action=delete", { platform }),
 };
 
+export const steamApi = {
+  getPlaytime:  (appId) => request("GET", `/auth/steam-playtime.php?appid=${appId}`),
+  getLibrary:   () => request("GET", "/auth/steam-playtime.php"),
+};
+
+export const chatApi = {
+  online:        () => request("GET", "/auth/users-online.php"),
+  conversations: () => request("GET", "/auth/chat-conversations.php"),
+  messages:      (withId, since) => request("GET", `/auth/chat-messages.php?with=${withId}${since ? `&since=${encodeURIComponent(since)}` : ""}`),
+  send:          (to_id, body) => request("POST", "/auth/chat-messages.php", { to_id, body }),
+};
+
 export const heartbeatApi = {
   ping: (version) => request("POST", "/auth/app-heartbeat.php", { version }),
 };
@@ -118,6 +130,7 @@ export const adminApi = {
   mailUser:       (userId, action) => request("POST", "/auth/admin-users.php?action=mail", { user_id: userId, action }),
 
   getEts2ProfileFiles: () => request("GET", "/auth/ets2-profile-files.php"),
+  getAtsProfileFiles:  () => request("GET", "/auth/ats-profile-files.php"),
 
   getNews:        () => request("GET", "/auth/news.php?action=list"),
   createNews:     (data) => request("POST", "/auth/news.php?action=create", data, true),

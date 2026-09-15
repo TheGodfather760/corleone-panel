@@ -5,29 +5,23 @@ use tauri_plugin_autostart::ManagerExt;
 const PROFILE_ID: &str = "436F726C656F6E65";
 const TRANSFER_FILES: &[&str] = &["controls.sii", "config.cfg", "config_local.cfg", "config-ROOT.cfg"];
 
-#[tauri::command]
-fn get_ets2_profile_status() -> serde_json::Value {
+fn get_profile_status_for(game_dir: &str) -> serde_json::Value {
     let docs = match dirs::document_dir() {
         Some(d) => d,
         None => return serde_json::json!({ "found": false }),
     };
-    let profile_path = docs
-        .join("Euro Truck Simulator 2")
-        .join("profiles")
-        .join(PROFILE_ID);
+    let profile_path = docs.join(game_dir).join("profiles").join(PROFILE_ID);
 
     if !profile_path.exists() {
         return serde_json::json!({ "found": false });
     }
 
-    // Aktarılabilecek dosyaları tara
     let mut transferable: Vec<String> = TRANSFER_FILES
         .iter()
         .filter(|f| profile_path.join(f).exists())
         .map(|f| f.to_string())
         .collect();
 
-    // gearbox_layout_*.sii wildcard
     if let Ok(entries) = std::fs::read_dir(&profile_path) {
         for entry in entries.flatten() {
             let name = entry.file_name().to_string_lossy().to_string();
@@ -37,7 +31,6 @@ fn get_ets2_profile_status() -> serde_json::Value {
         }
     }
 
-    // corleone_version.txt oku
     let installed_version = std::fs::read_to_string(profile_path.join("corleone_version.txt"))
         .ok()
         .map(|s| s.trim().to_string());
@@ -45,13 +38,11 @@ fn get_ets2_profile_status() -> serde_json::Value {
     serde_json::json!({ "found": true, "transferable": transferable, "installed_version": installed_version })
 }
 
-#[tauri::command]
-async fn install_ets2_profile(zip_url: String, transfer_files: Vec<String>, token: String, version: String) -> Result<(), String> {
-    let docs = dirs::document_dir().ok_or("Documents klasörü bulunamadı")?;
-    let profiles_dir = docs.join("Euro Truck Simulator 2").join("profiles");
+async fn install_profile_for(game_dir: &str, zip_url: String, transfer_files: Vec<String>, token: String, version: String) -> Result<(), String> {
+    let docs = dirs::document_dir().ok_or("Documents klasoru bulunamadi")?;
+    let profiles_dir = docs.join(game_dir).join("profiles");
     let profile_path = profiles_dir.join(PROFILE_ID);
 
-    // Aktarılacak dosyaları oku
     let mut saved: Vec<(String, Vec<u8>)> = Vec::new();
     if profile_path.exists() {
         for fname in &transfer_files {
@@ -61,7 +52,6 @@ async fn install_ets2_profile(zip_url: String, transfer_files: Vec<String>, toke
             }
         }
 
-        // Yedek zip oluştur
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_secs())
@@ -84,12 +74,9 @@ async fn install_ets2_profile(zip_url: String, transfer_files: Vec<String>, toke
             }
         }
         zip_writer.finish().map_err(|e| e.to_string())?;
-
-        // Eski klasörü sil
         std::fs::remove_dir_all(&profile_path).map_err(|e| e.to_string())?;
     }
 
-    // Zip indir
     let client = reqwest::Client::new();
     let resp = client
         .get(&zip_url)
@@ -99,19 +86,14 @@ async fn install_ets2_profile(zip_url: String, transfer_files: Vec<String>, toke
         .map_err(|e| e.to_string())?;
     let bytes = resp.bytes().await.map_err(|e| e.to_string())?;
 
-    // Zip aç
     std::fs::create_dir_all(&profile_path).map_err(|e| e.to_string())?;
     let cursor = std::io::Cursor::new(bytes);
     let mut archive = zip::ZipArchive::new(cursor).map_err(|e| e.to_string())?;
     for i in 0..archive.len() {
         let mut file = archive.by_index(i).map_err(|e| e.to_string())?;
         let raw_name = file.name().to_string();
-        // İlk klasör segmentini strip et (örn. "436F726C656F6E65/save/" → "save/")
-        let stripped = raw_name
-            .splitn(2, '/')
-            .nth(1)
-            .unwrap_or(&raw_name);
-        if stripped.is_empty() { continue; } // kök klasörün kendisi
+        let stripped = raw_name.splitn(2, '/').nth(1).unwrap_or(&raw_name);
+        if stripped.is_empty() { continue; }
         let outpath = profile_path.join(stripped);
         if raw_name.ends_with('/') {
             std::fs::create_dir_all(&outpath).map_err(|e| e.to_string())?;
@@ -126,17 +108,69 @@ async fn install_ets2_profile(zip_url: String, transfer_files: Vec<String>, toke
         }
     }
 
-    // Aktarilan dosyalari yaz
     for (fname, data) in saved {
         std::fs::write(profile_path.join(&fname), data).map_err(|e| e.to_string())?;
     }
 
-    // Versiyon dosyasini yaz
     if !version.is_empty() {
         std::fs::write(profile_path.join("corleone_version.txt"), &version).map_err(|e| e.to_string())?;
     }
 
     Ok(())
+}
+
+#[tauri::command]
+fn get_game_screenshots(game_dir: String) -> serde_json::Value {
+    let docs = match dirs::document_dir() {
+        Some(d) => d,
+        None => return serde_json::json!({ "files": [] }),
+    };
+    let screenshots_path = docs.join(&game_dir).join("screenshot");
+    if !screenshots_path.exists() {
+        return serde_json::json!({ "files": [] });
+    }
+    let mut files: Vec<serde_json::Value> = Vec::new();
+    if let Ok(entries) = std::fs::read_dir(&screenshots_path) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if !path.is_file() { continue; }
+            let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+            if !["jpg", "jpeg", "png", "bmp"].contains(&ext.as_str()) { continue; }
+            let name = path.file_name().unwrap_or_default().to_string_lossy().to_string();
+            let modified = path.metadata().ok()
+                .and_then(|m| m.modified().ok())
+                .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                .map(|d| d.as_secs())
+                .unwrap_or(0);
+            files.push(serde_json::json!({
+                "name": name,
+                "path": path.to_string_lossy(),
+                "modified": modified,
+            }));
+        }
+    }
+    files.sort_by(|a, b| b["modified"].as_u64().unwrap_or(0).cmp(&a["modified"].as_u64().unwrap_or(0)));
+    serde_json::json!({ "files": files })
+}
+
+#[tauri::command]
+fn get_ets2_profile_status() -> serde_json::Value {
+    get_profile_status_for("Euro Truck Simulator 2")
+}
+
+#[tauri::command]
+fn get_ats_profile_status() -> serde_json::Value {
+    get_profile_status_for("American Truck Simulator")
+}
+
+#[tauri::command]
+async fn install_ets2_profile(zip_url: String, transfer_files: Vec<String>, token: String, version: String) -> Result<(), String> {
+    install_profile_for("Euro Truck Simulator 2", zip_url, transfer_files, token, version).await
+}
+
+#[tauri::command]
+async fn install_ats_profile(zip_url: String, transfer_files: Vec<String>, token: String, version: String) -> Result<(), String> {
+    install_profile_for("American Truck Simulator", zip_url, transfer_files, token, version).await
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -151,7 +185,7 @@ pub fn run() {
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, Some(vec!["--hidden"])))
-        .invoke_handler(tauri::generate_handler![get_ets2_profile_status, install_ets2_profile])
+        .invoke_handler(tauri::generate_handler![get_ets2_profile_status, install_ets2_profile, get_ats_profile_status, install_ats_profile, get_game_screenshots])
         .setup(|app| {
             // Pencere ikonu
             let window = app.get_webview_window("main").unwrap();

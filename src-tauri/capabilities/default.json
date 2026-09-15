@@ -27,7 +27,15 @@
       "identifier": "http:allow-fetch",
       "allow": [
         { "url": "https://corleoneteam.com.tr/**" },
-        { "url": "https://*.corleoneteam.com.tr/**" }
+        { "url": "https://*.corleoneteam.com.tr/**" },
+        { "url": "https://api.steampowered.com/**" },
+        { "url": "https://store.steampowered.com/**" },
+        { "url": "https://cdn.cloudflare.steamstatic.com/**" },
+        { "url": "https://clan.akamai.steamstatic.com/**" },
+        { "url": "https://steamcdn-a.akamaihd.net/**" },
+        { "url": "https://steamstore-a.akamaihd.net/**" },
+        { "url": "https://*.akamaihd.net/**" },
+        { "url": "https://*.steamstatic.com/**" }
       ]
     }
   ]

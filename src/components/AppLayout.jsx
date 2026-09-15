@@ -8,6 +8,64 @@ import { getVersion } from "@tauri-apps/api/app";
 import { heartbeatApi } from "../lib/api";
 import { useEffect, useState, useRef } from "react";
 import InAppNotifications from "./InAppNotifications";
+import BigModeScreen from "./BigModeScreen";
+import { AnimatePresence, motion } from "framer-motion";
+
+function BigIntroOverlay({ onDone }) {
+  const videoRef = useRef(null);
+  const [opacity, setOpacity] = useState(1);
+  const doneCalledRef = useRef(false);
+
+  const finish = () => {
+    if (doneCalledRef.current) return;
+    doneCalledRef.current = true;
+    setOpacity(0);
+    setTimeout(onDone, 800);
+  };
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.play().catch(() => finish());
+    v.addEventListener("ended", finish);
+
+    const onTimeUpdate = () => {
+      if (!v.duration || doneCalledRef.current) return;
+      if (v.duration - v.currentTime <= 2) finish();
+    };
+    v.addEventListener("timeupdate", onTimeUpdate);
+    return () => {
+      v.removeEventListener("ended", finish);
+      v.removeEventListener("timeupdate", onTimeUpdate);
+    };
+  }, []);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+      onClick={finish}
+      style={{
+        position: "fixed", inset: 0, zIndex: 99999,
+        background: "#000", cursor: "pointer",
+        opacity, transition: "opacity 0.8s ease",
+        pointerEvents: opacity < 0.1 ? "none" : "auto",
+      }}
+    >
+      <video
+        ref={videoRef}
+        src="/c-one_intro.mp4"
+        playsInline
+        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+      />
+      <div style={{
+        position: "absolute", bottom: 28, right: 28,
+        fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.4)",
+        letterSpacing: 1.5, textTransform: "uppercase",
+      }}>Geç ›</div>
+    </motion.div>
+  );
+}
 
 const LOGOS = {
   logotype2025: "/Corleone-Logotype-2025.png",
@@ -47,18 +105,28 @@ export default function AppLayout({ children }) {
   const { user, logout } = useAuth();
   const { settings } = useSettings();
   const { inbox, clearInbox } = useNotif();
-  const { updateInfo, status: updateStatus, installUpdate } = useUpdate();
+  const { updateInfo, status: updateStatus, installUpdate, downloadProgress } = useUpdate();
   const updating = updateStatus === "downloading";
   const logoSrc = LOGOS[settings.sidebarLogo] ?? LOGOS.logotype2025;
   const isAdmin = user?.role === "admin" || user?.role === "moderator";
   const [version, setVersion] = useState("");
   const [inboxOpen, setInboxOpen] = useState(false);
+  const [bigMode, setBigMode] = useState(false);
+  const [bigIntro, setBigIntro] = useState(false);
   const inboxRef = useRef(null);
+
+  // Başlangıçta C-ONE aç ayarı
+  useEffect(() => {
+    if (settings.c1_startWithBigMode) {
+      if (settings.c1_showIntro) setBigIntro(true);
+      else setBigMode(true);
+    }
+  }, []);
 
   useEffect(() => {
     getVersion()
       .then(v => { setVersion(v); heartbeatApi.ping(v).catch(() => {}); })
-      .catch(() => { setVersion("0.5.6"); heartbeatApi.ping("0.5.6").catch(() => {}); });
+      .catch(() => { setVersion("0.6.0"); heartbeatApi.ping("0.6.0").catch(() => {}); });
   }, []);
 
   // Dışarı tıklayınca kapat
@@ -74,6 +142,12 @@ export default function AppLayout({ children }) {
 
   return (
     <div className="app-shell">
+      <AnimatePresence>
+        {bigIntro && (
+          <BigIntroOverlay onDone={() => { setBigIntro(false); setBigMode(true); }} />
+        )}
+        {bigMode && <BigModeScreen onExit={() => setBigMode(false)} />}
+      </AnimatePresence>
       <InAppNotifications />
 
       <header className="topbar">
@@ -85,6 +159,20 @@ export default function AppLayout({ children }) {
               v{version}
             </span>
           )}
+          <span
+            onClick={() => { try { const s = new Audio('/sounds/c-one_onay.wav'); s.volume = 0.5; s.play().catch(()=>{}); } catch {} if (settings.c1_showIntro) setBigIntro(true); else setBigMode(true); }}
+            style={{
+              fontSize: 11, fontWeight: 900, color: "#f5a623",
+              background: "rgba(245,166,35,.1)",
+              border: "1.5px solid #7c3aed",
+              padding: "14px 20px", borderRadius: 8, letterSpacing: 3,
+              textTransform: "uppercase",
+              boxShadow: "0 0 10px rgba(124,58,237,.4), inset 0 0 8px rgba(245,166,35,.06)",
+              lineHeight: 1, cursor: "pointer", transition: "all .2s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 0 20px rgba(124,58,237,.7), inset 0 0 12px rgba(245,166,35,.1)"; e.currentTarget.style.borderColor = "#a855f7"; }}
+            onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 0 10px rgba(124,58,237,.4), inset 0 0 8px rgba(245,166,35,.06)"; e.currentTarget.style.borderColor = "#7c3aed"; }}
+          >C-ONE</span>
         </div>
 
         <nav className="topbar-nav">
@@ -108,23 +196,41 @@ export default function AppLayout({ children }) {
                 if (updating) return;
                 installUpdate();
               }}
-              title={`Sürüm ${updateInfo.version} mevcut — tıkla yükle`}
+              title={updating ? `İndiriliyor... %${downloadProgress}` : `Sürüm ${updateInfo.version} mevcut — tıkla yükle`}
               style={{
                 position: "relative", width: 34, height: 34, borderRadius: 8,
                 background: "rgba(245,166,35,.12)",
                 border: "1px solid rgba(245,166,35,.35)",
                 color: "#f5a623", cursor: updating ? "wait" : "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                transition: "all .2s",
+                transition: "all .2s", overflow: "hidden",
               }}
             >
+              {updating && (
+                <div style={{
+                  position: "absolute", bottom: 0, left: 0,
+                  height: 3, background: "#f5a623",
+                  width: `${downloadProgress}%`, transition: "width .3s ease",
+                  borderRadius: "0 0 8px 8px",
+                }} />
+              )}
               <RefreshCw size={15} style={{ animation: updating ? "spin 1s linear infinite" : "none" }} />
-              <span style={{
-                position: "absolute", top: -4, right: -4,
-                background: "#f5a623", color: "#000", borderRadius: 20,
-                fontSize: 8, fontWeight: 900, padding: "1px 4px",
-                minWidth: 16, textAlign: "center", lineHeight: "14px",
-              }}>NEW</span>
+              {!updating && (
+                <span style={{
+                  position: "absolute", top: -4, right: -4,
+                  background: "#f5a623", color: "#000", borderRadius: 20,
+                  fontSize: 8, fontWeight: 900, padding: "1px 4px",
+                  minWidth: 16, textAlign: "center", lineHeight: "14px",
+                }}>NEW</span>
+              )}
+              {updating && downloadProgress > 0 && (
+                <span style={{
+                  position: "absolute", top: -4, right: -4,
+                  background: "#f5a623", color: "#000", borderRadius: 20,
+                  fontSize: 7, fontWeight: 900, padding: "1px 4px",
+                  minWidth: 16, textAlign: "center", lineHeight: "14px",
+                }}>{downloadProgress}%</span>
+              )}
             </button>
           )}
 
@@ -156,10 +262,10 @@ export default function AppLayout({ children }) {
 
             {inboxOpen && (
               <div style={{
-                position: "absolute", top: "calc(100% + 8px)", right: 0,
+                position: "fixed", top: "calc(var(--topbar-height) + 8px)", right: 16,
                 width: 320, background: "#1a1714",
                 border: "1px solid rgba(255,255,255,.1)", borderRadius: 12,
-                boxShadow: "0 16px 48px rgba(0,0,0,.7)", zIndex: 9998, overflow: "hidden",
+                boxShadow: "0 16px 48px rgba(0,0,0,.7)", zIndex: 99999, overflow: "hidden",
               }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,.07)" }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>Bildirimler</span>

@@ -8,6 +8,7 @@ export function UpdateProvider({ children }) {
   const [updateInfo, setUpdateInfo] = useState(null); // { version, update }
   const [status, setStatus] = useState(null); // null | checking | available | latest | downloading | error
   const [lastChecked, setLastChecked] = useState(null);
+  const [downloadProgress, setDownloadProgress] = useState(0); // 0-100
 
   // Uygulama açılınca otomatik kontrol
   useEffect(() => { checkUpdate(); }, []);
@@ -34,17 +35,30 @@ export function UpdateProvider({ children }) {
   const installUpdate = useCallback(async () => {
     if (!updateInfo) return;
     setStatus("downloading");
+    setDownloadProgress(0);
     try {
-      await updateInfo.update.downloadAndInstall();
+      let downloaded = 0;
+      let total = 0;
+      await updateInfo.update.downloadAndInstall((event) => {
+        if (event.event === "Started") {
+          total = event.data.contentLength || 0;
+        } else if (event.event === "Progress") {
+          downloaded += event.data.chunkLength || 0;
+          if (total > 0) setDownloadProgress(Math.round((downloaded / total) * 100));
+        } else if (event.event === "Finished") {
+          setDownloadProgress(100);
+        }
+      });
       await relaunch();
     } catch {
       setStatus("error");
+      setDownloadProgress(0);
       setTimeout(() => setStatus(null), 3000);
     }
   }, [updateInfo]);
 
   return (
-    <UpdateContext.Provider value={{ updateInfo, status, lastChecked, checkUpdate, installUpdate }}>
+    <UpdateContext.Provider value={{ updateInfo, status, lastChecked, downloadProgress, checkUpdate, installUpdate }}>
       {children}
     </UpdateContext.Provider>
   );

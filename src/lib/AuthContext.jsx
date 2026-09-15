@@ -27,6 +27,7 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     try { await authApi.logout(); } catch {}
     localStorage.removeItem("auth_token");
+    localStorage.removeItem("remember_me");
     setUser(null);
   };
 

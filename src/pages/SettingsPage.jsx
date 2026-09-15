@@ -56,7 +56,7 @@ function SegmentedControl({ options, value, onChange }) {
 export default function SettingsPage() {
   const { settings, update } = useSettings();
   const { logout } = useAuth();
-  const { updateInfo, status: updateStatus, lastChecked, checkUpdate, installUpdate } = useUpdate();
+  const { updateInfo, status: updateStatus, lastChecked, checkUpdate, installUpdate, downloadProgress } = useUpdate();
   const [saved, setSaved] = useState(false);
   const [version, setVersion] = useState("");
 
@@ -197,12 +197,23 @@ export default function SettingsPage() {
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 {updateStatus === "available" && (
                   <button onClick={installUpdate}
-                    style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 7, background: "rgba(46,204,113,.15)", border: "1px solid rgba(46,204,113,.4)", color: "#2ecc71", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                    style={{ position: "relative", display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 7, background: "rgba(46,204,113,.15)", border: "1px solid rgba(46,204,113,.4)", color: "#2ecc71", fontSize: 12, fontWeight: 600, cursor: "pointer", overflow: "hidden" }}>
                     ↓ {updateInfo?.version} Yükle
                   </button>
                 )}
+                {updateStatus === "downloading" && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 120 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#2ecc71" }}>
+                      <span>İndiriliyor...</span>
+                      <span>{downloadProgress}%</span>
+                    </div>
+                    <div style={{ height: 4, background: "rgba(255,255,255,.08)", borderRadius: 4, overflow: "hidden" }}>
+                      <div style={{ height: "100%", background: "#2ecc71", width: `${downloadProgress}%`, transition: "width .3s ease", borderRadius: 4 }} />
+                    </div>
+                  </div>
+                )}
                 <button onClick={checkUpdate} disabled={updateStatus === "checking" || updateStatus === "downloading"}
-                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 7, background: "var(--bg-elevated)", border: `1px solid ${updateStatus === "latest" ? "rgba(46,204,113,.4)" : updateStatus === "error" ? "rgba(231,76,60,.4)" : "var(--border)"}`, color: updateStatus === "latest" ? "#2ecc71" : updateStatus === "error" ? "#e74c3c" : "var(--text-secondary)", fontSize: 12, fontWeight: 600, cursor: "pointer", opacity: (updateStatus === "checking" || updateStatus === "downloading") ? .6 : 1 }}>
+                  style={{ display: updateStatus === "downloading" ? "none" : "flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 7, background: "var(--bg-elevated)", border: `1px solid ${updateStatus === "latest" ? "rgba(46,204,113,.4)" : updateStatus === "error" ? "rgba(231,76,60,.4)" : "var(--border)"}`, color: updateStatus === "latest" ? "#2ecc71" : updateStatus === "error" ? "#e74c3c" : "var(--text-secondary)", fontSize: 12, fontWeight: 600, cursor: "pointer", opacity: (updateStatus === "checking" || updateStatus === "downloading") ? .6 : 1 }}>
                   <RefreshCw size={13} style={{ animation: (updateStatus === "checking" || updateStatus === "downloading") ? "spin 1s linear infinite" : "none" }} />
                   {updateStatus === "checking" ? "Kontrol ediliyor..." : updateStatus === "latest" ? "✓ Güncel" : updateStatus === "error" ? "Hata" : updateStatus === "downloading" ? "İndiriliyor..." : "Kontrol Et"}
                 </button>

@@ -2,10 +2,10 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { adminApi } from "../../lib/api";
 import { Upload, Trash2, Pencil, Check, X, FileIcon, ImageIcon, Download, FolderOpen, PlusCircle } from "lucide-react";
 
-const CATEGORIES = ["general", "mod", "skin", "tool", "other", "ets2_profile"];
-const CAT_LABELS  = { general: "Genel", mod: "Mod", skin: "Skin", tool: "Araç", other: "Diğer", ets2_profile: "ETS2 Profili (Corleone ETS2 Profili)" };
-const CAT_LABELS_SHORT = { ...{ general: "Genel", mod: "Mod", skin: "Skin", tool: "Araç", other: "Diğer" }, ets2_profile: "ETS2 Profili" };
-const CAT_COLORS  = { general: "#888", mod: "#3498db", skin: "#9b59b6", tool: "#1abc9c", other: "#666", ets2_profile: "#f5a623" };
+const CATEGORIES = ["general", "mod", "skin", "tool", "other", "ets2_profile", "ats_profile"];
+const CAT_LABELS  = { general: "Genel", mod: "Mod", skin: "Skin", tool: "Araç", other: "Diğer", ets2_profile: "ETS2 Profili (Corleone ETS2 Profili)", ats_profile: "ATS Profili (Corleone ATS Profili)" };
+const CAT_LABELS_SHORT = { ...{ general: "Genel", mod: "Mod", skin: "Skin", tool: "Araç", other: "Diğer" }, ets2_profile: "ETS2 Profili", ats_profile: "ATS Profili" };
+const CAT_COLORS  = { general: "#888", mod: "#3498db", skin: "#9b59b6", tool: "#1abc9c", other: "#666", ets2_profile: "#f5a623", ats_profile: "#3498db" };
 
 function formatSize(bytes) {
   if (!bytes) return "—";
@@ -65,6 +65,68 @@ function Ets2FilePicker({ value, onChange }) {
                       <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>{formatSize(f.size)} • {f.date}</div>
                     </div>
                     {f.url === value && <Check size={13} color="#f5a623" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function AtsFilePicker({ value, onChange }) {
+  const [open, setOpen]   = useState(false);
+  const [files, setFiles] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const openPicker = async () => {
+    setOpen(true);
+    setLoading(true);
+    try {
+      const r = await adminApi.getAtsProfileFiles();
+      setFiles(r.data.data?.files || []);
+    } catch {}
+    setLoading(false);
+  };
+
+  const select = (url) => { onChange(url); setOpen(false); };
+
+  return (
+    <>
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ flex: 1, fontSize: 11, color: value ? "#2ecc71" : "var(--text-muted)", background: "var(--bg-elevated)", border: `1px solid ${value ? "rgba(39,174,96,.3)" : "var(--border)"}`, borderRadius: 8, padding: "8px 12px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {value ? value.split("/").pop() : "Dosya seçilmedi"}
+        </div>
+        <button type="button" onClick={openPicker} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 8, background: "rgba(52,152,219,.1)", border: "1px solid rgba(52,152,219,.3)", color: "#3498db", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+          <FolderOpen size={13} /> Dosya Seç
+        </button>
+        {value && <button type="button" onClick={() => onChange("")} style={{ background: "none", border: "none", color: "#888", cursor: "pointer", padding: 4 }}><X size={14} /></button>}
+      </div>
+
+      {open && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.7)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ background: "#1a1714", border: "1px solid rgba(255,255,255,.1)", borderRadius: 14, width: 460, maxWidth: "90vw", padding: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>ATS Profil Dosyaları</span>
+              <button onClick={() => setOpen(false)} style={{ background: "none", border: "none", color: "#888", cursor: "pointer" }}><X size={16} /></button>
+            </div>
+            {loading ? (
+              <div style={{ textAlign: "center", padding: "24px 0", color: "var(--text-muted)", fontSize: 13 }}>Yükleniyor...</div>
+            ) : files.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "24px 0", color: "var(--text-muted)", fontSize: 13 }}>Henüz dosya yok.</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 320, overflowY: "auto" }}>
+                {files.map(f => (
+                  <button key={f.url} onClick={() => select(f.url)}
+                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, background: f.url === value ? "rgba(52,152,219,.1)" : "var(--bg-elevated)", border: `1px solid ${f.url === value ? "rgba(52,152,219,.3)" : "var(--border)"}`, cursor: "pointer", textAlign: "left" }}>
+                    <FileIcon size={14} color="#3498db" style={{ flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</div>
+                      <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>{formatSize(f.size)} • {f.date}</div>
+                    </div>
+                    {f.url === value && <Check size={13} color="#3498db" />}
                   </button>
                 ))}
               </div>
@@ -204,6 +266,9 @@ function UploadForm({ onUploaded, onCancel }) {
         </div>
         {isEts2 && (
           <Ets2FilePicker value={form.profile_zip_url} onChange={v => set("profile_zip_url", v)} />
+        )}
+        {form.category === "ats_profile" && (
+          <AtsFilePicker value={form.profile_zip_url} onChange={v => set("profile_zip_url", v)} />
         )}
         <RemoteFilePicker value={form.server_file} onChange={v => set('server_file', v)} />
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -413,6 +478,9 @@ export default function AdminDownloadsPage() {
                       {versionsModal.category === "ets2_profile" && (
                         <Ets2FilePicker value={editingVersion.profile_zip_url || ""} onChange={val => setEditingVersion(p => ({ ...p, profile_zip_url: val }))} />
                       )}
+                      {versionsModal.category === "ats_profile" && (
+                        <AtsFilePicker value={editingVersion.profile_zip_url || ""} onChange={val => setEditingVersion(p => ({ ...p, profile_zip_url: val }))} />
+                      )}
                       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                         <button onClick={() => setEditingVersion(null)} style={{ padding: "6px 12px", borderRadius: 7, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 12, cursor: "pointer" }}>İptal</button>
                         <button onClick={saveVersion} disabled={verSaving} style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 14px", borderRadius: 7, background: "rgba(39,174,96,.15)", border: "1px solid rgba(39,174,96,.3)", color: "#2ecc71", fontSize: 12, fontWeight: 700, cursor: "pointer", opacity: verSaving ? 0.6 : 1 }}>
@@ -430,7 +498,9 @@ export default function AdminDownloadsPage() {
                         </div>
                         {v.original_name && <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{v.original_name}</div>}
                         {v.changelog && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4, fontStyle: "italic" }}>{v.changelog}</div>}
-                        {v.profile_zip_url && <div style={{ fontSize: 10, color: "#1abc9c", marginTop: 4 }}>ETS2: {v.profile_zip_url.split('/').pop()}</div>}
+                        {v.profile_zip_url && <div style={{ fontSize: 10, color: "#1abc9c", marginTop: 4 }}>
+                          {versionsModal.category === 'ats_profile' ? 'ATS' : 'ETS2'}: {v.profile_zip_url.split('/').pop()}
+                        </div>}
                       </div>
                       <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                         <button onClick={() => setEditingVersion({ version_id: v.version_id, version: v.version, changelog: v.changelog || "", profile_zip_url: v.profile_zip_url || "" })} style={{ padding: "5px 8px", borderRadius: 7, border: "1px solid rgba(245,166,35,.2)", background: "rgba(245,166,35,.1)", color: "#f5a623", cursor: "pointer", display: "flex", alignItems: "center" }}><Pencil size={12} /></button>
@@ -461,6 +531,9 @@ export default function AdminDownloadsPage() {
               <textarea value={addVerForm.changelog} onChange={e => setAddVerForm(p => ({ ...p, changelog: e.target.value }))} placeholder="Değişiklik notları" rows={2} className="admin-input" style={{ width: "100%", boxSizing: "border-box", resize: "vertical" }} />
               {addVerModal.category === "ets2_profile" && (
                 <Ets2FilePicker value={addVerForm.profile_zip_url} onChange={v => setAddVerForm(p => ({ ...p, profile_zip_url: v }))} />
+              )}
+              {addVerModal.category === "ats_profile" && (
+                <AtsFilePicker value={addVerForm.profile_zip_url} onChange={v => setAddVerForm(p => ({ ...p, profile_zip_url: v }))} />
               )}
               <label style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 8, background: addVerFile ? "rgba(39,174,96,.1)" : "var(--bg-elevated)", border: `1px solid ${addVerFile ? "rgba(39,174,96,.3)" : "var(--border)"}`, color: addVerFile ? "#2ecc71" : "var(--text-secondary)", fontSize: 12, cursor: "pointer" }}>
                 <FileIcon size={13} />{addVerFile ? addVerFile.name : "Dosya Seç *"}
@@ -516,6 +589,9 @@ export default function AdminDownloadsPage() {
                   </div>
                   {editData.category === "ets2_profile" && (
                     <Ets2FilePicker value={editData.profile_zip_url || ""} onChange={v => setEditData(p => ({ ...p, profile_zip_url: v }))} />
+                  )}
+                  {editData.category === "ats_profile" && (
+                    <AtsFilePicker value={editData.profile_zip_url || ""} onChange={v => setEditData(p => ({ ...p, profile_zip_url: v }))} />
                   )}
                   <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                     <button onClick={() => setEditId(null)} style={{ padding: "7px 14px", borderRadius: 7, background: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 12, cursor: "pointer" }}>İptal</button>

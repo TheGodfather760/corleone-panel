@@ -11,6 +11,15 @@ const DEFAULTS = {
   downloadNotif: true,
   sidebarLogo: "logotype2025",
   skipIntro: false,
+  // C-ONE ayarları
+  c1_startWithBigMode: false,
+  c1_musicEnabled: false,
+  c1_musicVolume: 12,
+  c1_accentColor: "#f5a623",
+  c1_showIntro: true,
+  c1_soundEnabled: true,
+  c1_font: "LemonMilk",
+  c1_fontSize: 1,
 };
 
 const SettingsContext = createContext(null);
@@ -33,6 +42,20 @@ export function SettingsProvider({ children }) {
     } else {
       document.documentElement.style.setProperty("--transition-speed", "0s");
     }
+    // C-ONE font
+    const fontMap = {
+      "LemonMilk":      "'LemonMilk', 'Segoe UI', sans-serif",
+      "Orbitron":       "'Orbitron', 'Segoe UI', sans-serif",
+      "Rajdhani":       "'Rajdhani', 'Segoe UI', sans-serif",
+      "Exo2":           "'Exo 2', 'Segoe UI', sans-serif",
+      "ShareTechMono":  "'Share Tech Mono', monospace",
+      "SegoeUI":        "'Segoe UI', sans-serif",
+      "Ubuntu":         "'Ubuntu', sans-serif",
+      "CenturyGothic":  "'Century Gothic', 'CenturyGothic', 'AppleGothic', sans-serif",
+    };
+    document.documentElement.style.setProperty("--c1-font", fontMap[settings.c1_font] || fontMap["LemonMilk"]);
+    // C-ONE font scale
+    document.documentElement.style.setProperty("--c1-scale", settings.c1_fontSize ?? 1);
   }, [settings]);
 
   const update = (key, value) => setSettings(prev => ({ ...prev, [key]: value }));
