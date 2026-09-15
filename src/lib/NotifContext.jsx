@@ -8,9 +8,9 @@ export function NotifProvider({ children }) {
   const [toasts, setToasts] = useState([]);
   const [inbox, setInbox] = useState([]);
 
-  const push = useCallback((title, body = "", type = "info") => {
+  const push = useCallback((title, body = "", type = "info", onClick = null) => {
     const id = ++_id;
-    const item = { id, title, body, type, time: Date.now() };
+    const item = { id, title, body, type, time: Date.now(), onClick };
     setToasts(p => [item, ...p].slice(0, 5));
     setInbox(p => [item, ...p].slice(0, 50));
     setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 5000);

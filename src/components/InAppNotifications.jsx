@@ -94,7 +94,8 @@ function NotifToast({ toast, onDismiss }) {
       animate={{ opacity: 1, x: 0, scale: 1 }}
       exit={{ opacity: 0, x: 60, scale: 0.88, transition: { duration: 0.2 } }}
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      style={{ position: "relative", overflow: "hidden", borderRadius: 12, minWidth: 300, maxWidth: 360, cursor: "default" }}
+      style={{ position: "relative", overflow: "hidden", borderRadius: 12, minWidth: 300, maxWidth: 360, cursor: toast.onClick ? "pointer" : "default" }}
+      onClick={() => { if (toast.onClick) { toast.onClick(); dismiss(toast.id); } }}
     >
       {/* Arka plan */}
       <div style={{
