@@ -140,11 +140,11 @@ export default function AppLayout({ children }) {
   useEffect(() => {
     getVersion()
       .then(v => { setVersion(v); heartbeatApi.ping(v).catch(() => {}); })
-      .catch(() => { setVersion("0.7.0"); heartbeatApi.ping("0.7.0").catch(() => {}); });
+      .catch(() => { setVersion("0.7.0.1"); heartbeatApi.ping("0.7.0.1").catch(() => {}); });
 
     // Her 2 dakikada bir last_seen güncelle
     const hbInterval = setInterval(() => {
-      getVersion().then(v => heartbeatApi.ping(v).catch(() => {})).catch(() => heartbeatApi.ping("0.7.0").catch(() => {}));
+      getVersion().then(v => heartbeatApi.ping(v).catch(() => {})).catch(() => heartbeatApi.ping("0.7.0.1").catch(() => {}));
     }, 120000);
 
     // push fonksiyonunu UpdateContext'e kaydet ve güncelleme kontrol et
@@ -353,4 +353,5 @@ export default function AppLayout({ children }) {
     </div>
   );
 }
+
 

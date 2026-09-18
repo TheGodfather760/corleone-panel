@@ -1,8 +1,8 @@
 ; Corleone Panel - Inno Setup Installer Script
-; Versiyon: 0.7.0
+; Versiyon: 0.7.0.1
 
 #define AppName "Corleone Panel"
-#define AppVersion "0.7.0"
+#define AppVersion "0.7.0.1"
 #define AppPublisher "Corleone Team"
 #define AppURL "https://corleoneteam.com.tr"
 #define AppExeName "corleone-panel.exe"
@@ -120,4 +120,5 @@ begin
   else
     WizardForm.WizardBitmapImage.Bitmap.LoadFromFile(ExpandConstant('{tmp}\setup-logotype-corleone.bmp'));
 end;
+
 
