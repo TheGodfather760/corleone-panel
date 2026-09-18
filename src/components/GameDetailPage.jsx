@@ -149,6 +149,11 @@ function TabActivity({ game, section, focusedIdx, shotsCount, newsCount }) {
 function TabMyInfo({ game }) {
   const [events, setEvents] = useState([]);
   const [downloads, setDownloads] = useState([]);
+  const [achievements, setAchievements] = useState(null);
+  const [achLoading, setAchLoading] = useState(false);
+  const [achError, setAchError] = useState(null);
+  const [dlcs, setDlcs] = useState([]);
+  const [dlcLoading, setDlcLoading] = useState(false);
 
   useEffect(() => {
     eventsApi.list().then(r => {
@@ -158,6 +163,7 @@ function TabMyInfo({ game }) {
         e.game?.toLowerCase().includes(game.id)
       ).slice(0, 6));
     }).catch(() => {});
+
     downloadsApi.list().then(r => {
       const all = r.data.data || [];
       setDownloads(all.filter(d =>
@@ -165,43 +171,111 @@ function TabMyInfo({ game }) {
         d.title?.toLowerCase().includes(game.id === "ets2" ? "ets" : game.id === "ats" ? "ats" : game.id)
       ).slice(0, 4));
     }).catch(() => {});
+
+    if (game.steamAppId) {
+      setAchLoading(true);
+      steamApi.getAchievements(game.steamAppId)
+        .then(r => {
+          if (r.data.success) setAchievements(r.data);
+          else setAchError(r.data.message);
+        })
+        .catch(() => setAchError('Bağlantı hatası.'))
+        .finally(() => setAchLoading(false));
+
+      // DLC listesini appdetails'dan çek
+      setDlcLoading(true);
+      tauriFetch(`https://store.steampowered.com/api/appdetails?appids=${game.steamAppId}&filters=dlc&l=turkish`, { method: "GET", headers: { Accept: "application/json" } })
+        .then(r => r.json())
+        .then(async d => {
+          const dlcIds = d?.[game.steamAppId]?.data?.dlc || [];
+          if (!dlcIds.length) { setDlcLoading(false); return; }
+          // İlk 10 DLC'nin detaylarını çek
+          const results = await Promise.allSettled(
+            dlcIds.slice(0, 10).map(id =>
+              tauriFetch(`https://store.steampowered.com/api/appdetails?appids=${id}&filters=basic&l=turkish`, { method: "GET", headers: { Accept: "application/json" } })
+                .then(r => r.json())
+                .then(d => d?.[id]?.data || null)
+            )
+          );
+          setDlcs(results.filter(r => r.status === "fulfilled" && r.value).map(r => r.value));
+        })
+        .catch(() => {})
+        .finally(() => setDlcLoading(false));
+    }
   }, [game.id]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
       <div>
-        <SectionTitle icon={Trophy} title="Başarımlar" accent={game.accent} />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 8 }}>
-          {[
-            { name: "İlk Konvoy", desc: "İlk konvoya katıldın", done: true },
-            { name: "Uzun Yol", desc: "500km sürüş tamamla", done: true },
-            { name: "Topluluk Üyesi", desc: "Corleone'a katıl", done: true },
-            { name: "Etkinlik Ustası", desc: "10 etkinliğe katıl", done: false },
-          ].map(a => (
-            <div key={a.name} style={{ display: "flex", gap: 10, padding: "10px 12px", borderRadius: 8, background: a.done ? `${game.accent}10` : "rgba(255,255,255,.03)", border: `1px solid ${a.done ? game.accent + "30" : "rgba(255,255,255,.06)"}` }}>
-              <div style={{ width: 32, height: 32, borderRadius: 8, background: a.done ? `${game.accent}20` : "rgba(255,255,255,.06)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <Trophy size={14} color={a.done ? game.accent : "rgba(255,255,255,.2)"} />
+        <SectionTitle icon={Trophy} title={achievements ? `Başarımlar (${achievements.unlocked}/${achievements.total})` : "Başarımlar"} accent={game.accent} />
+        {achLoading ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, color: "rgba(255,255,255,.3)", fontSize: 11, padding: "16px 0" }}>
+            <div style={{ width: 14, height: 14, borderRadius: "50%", border: "2px solid rgba(255,255,255,.2)", borderTopColor: game.accent, animation: "spin 0.8s linear infinite" }} />
+            Yükleniyor...
+          </div>
+        ) : achError ? (
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,.25)", padding: "16px 0" }}>{achError}</div>
+        ) : !achievements ? (
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,.25)", padding: "16px 0" }}>Bu oyun için başarım bilgisi mevcut değil.</div>
+        ) : (
+          <>
+            {/* Progress bar */}
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ fontSize: 10, color: "rgba(255,255,255,.4)" }}>{achievements.unlocked} kazanıldı</span>
+                <span style={{ fontSize: 10, color: "rgba(255,255,255,.4)" }}>{Math.round(achievements.unlocked / achievements.total * 100)}%</span>
               </div>
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: a.done ? "#fff" : "rgba(255,255,255,.3)" }}>{a.name}</div>
-                <div style={{ fontSize: 9, color: "rgba(255,255,255,.3)", marginTop: 2 }}>{a.desc}</div>
+              <div style={{ height: 4, borderRadius: 2, background: "rgba(255,255,255,.08)", overflow: "hidden" }}>
+                <div style={{ height: "100%", borderRadius: 2, background: game.accent, width: `${achievements.unlocked / achievements.total * 100}%`, transition: "width .6s ease" }} />
               </div>
             </div>
-          ))}
-        </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 8, maxHeight: 320, overflowY: "auto" }}>
+              {achievements.achievements.slice(0, 30).map(a => (
+                <div key={a.apiname} style={{ display: "flex", gap: 10, padding: "8px 10px", borderRadius: 8, background: a.achieved ? `${game.accent}0d` : "rgba(255,255,255,.03)", border: `1px solid ${a.achieved ? game.accent + "25" : "rgba(255,255,255,.06)"}`, opacity: a.achieved ? 1 : 0.5 }}>
+                  {a.icon
+                    ? <img src={a.icon} style={{ width: 32, height: 32, borderRadius: 6, flexShrink: 0, filter: a.achieved ? "none" : "grayscale(1)" }} />
+                    : <div style={{ width: 32, height: 32, borderRadius: 6, background: "rgba(255,255,255,.06)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}><Trophy size={14} color={a.achieved ? game.accent : "rgba(255,255,255,.2)"} /></div>
+                  }
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: a.achieved ? "#fff" : "rgba(255,255,255,.35)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.name}</div>
+                    {a.description && <div style={{ fontSize: 9, color: "rgba(255,255,255,.25)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.description}</div>}
+                    {a.achieved && a.unlocktime > 0 && <div style={{ fontSize: 8, color: game.accent, marginTop: 2 }}>{new Date(a.unlocktime * 1000).toLocaleDateString("tr-TR")}</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
       <div>
-        <SectionTitle icon={Package} title="İndirmeler & DLC" accent={game.accent} />
-        {downloads.length === 0 ? (
-          <div style={{ fontSize: 11, color: "rgba(255,255,255,.25)", padding: "16px 0" }}>Bu oyun için indirme bulunamadı.</div>
+        <SectionTitle icon={Package} title="DLC" accent={game.accent} />
+        {dlcLoading ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, color: "rgba(255,255,255,.3)", fontSize: 11, padding: "16px 0" }}>
+            <div style={{ width: 14, height: 14, borderRadius: "50%", border: "2px solid rgba(255,255,255,.2)", borderTopColor: game.accent, animation: "spin 0.8s linear infinite" }} />
+            Yükleniyor...
+          </div>
+        ) : dlcs.length === 0 ? (
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,.25)", padding: "16px 0" }}>DLC bulunamadı.</div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 8 }}>
-            {downloads.map(d => (
-              <div key={d.id} style={{ display: "flex", gap: 10, padding: "10px 12px", borderRadius: 8, background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.07)" }}>
-                {d.thumbnail && <img src={d.thumbnail} style={{ width: 48, height: 32, objectFit: "cover", borderRadius: 5, flexShrink: 0 }} />}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.title}</div>
-                  <div style={{ fontSize: 9, color: "rgba(255,255,255,.35)", marginTop: 2 }}>{d.versions?.[0]?.version ? `v${d.versions[0].version}` : ""}</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 8 }}>
+            {dlcs.map(d => (
+              <div key={d.steam_appid} style={{ borderRadius: 8, overflow: "hidden", background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.07)", cursor: "pointer", transition: "all .2s" }}
+                onClick={() => openUrl(`https://store.steampowered.com/app/${d.steam_appid}`).catch(() => {})}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = `${game.accent}40`; e.currentTarget.style.background = "rgba(255,255,255,.07)"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,.07)"; e.currentTarget.style.background = "rgba(255,255,255,.04)"; }}
+              >
+                <div style={{ width: "100%", aspectRatio: "16/9", overflow: "hidden", background: "#111" }}>
+                  <img
+                    src={`https://cdn.cloudflare.steamstatic.com/steam/apps/${d.steam_appid}/header.jpg`}
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    onError={e => e.currentTarget.style.display = "none"}
+                  />
+                </div>
+                <div style={{ padding: "8px 10px" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.name}</div>
+                  <div style={{ fontSize: 9, color: "rgba(255,255,255,.3)", marginTop: 2 }}>
+                    {d.is_free ? "Ücretsiz" : d.price_overview?.final_formatted || ""}
+                  </div>
                 </div>
               </div>
             ))}
@@ -230,7 +304,47 @@ function TabMyInfo({ game }) {
   );
 }
 
-function TabGameInfo({ game }) {
+function parseVersion(title) {
+  if (!title) return null;
+  const m = title.match(/v?(\d+\.\d+[\d.]*)/);
+  return m ? m[1] : null;
+}
+
+// Steam'den release versiyon çek
+async function fetchReleaseVersion(appId) {
+  try {
+    // UpToDateCheck — mevcut yüklenen versiyonu 0 vererek en güncel release'i al
+    const r = await tauriFetch(
+      `https://api.steampowered.com/ISteamApps/UpToDateCheck/v1/?appid=${appId}&version=0&format=json`,
+      { method: "GET", headers: { Accept: "application/json" } }
+    );
+    const d = await r.json();
+    const v = d?.response?.required_version;
+    if (v && v > 0) return String(v);
+  } catch {}
+
+  // Fallback: news feed'inden parse et (beta içermeyenleri filtrele)
+  try {
+    const r = await tauriFetch(
+      `https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/?appid=${appId}&count=20&maxlength=0&format=json&feeds=steam_community_announcements`,
+      { method: "GET", headers: { Accept: "application/json" } }
+    );
+    const d = await r.json();
+    const items = d?.appnews?.newsitems || [];
+    // Beta/open beta içeren haberleri atla
+    const release = items.find(n => {
+      const t = n.title?.toLowerCase() || "";
+      return t.match(/\d+\.\d+/) && !t.match(/beta|preview|experimental|opt.in/);
+    });
+    if (release) {
+      const m = release.title.match(/v?(\d+\.\d+[\d.]*)/);
+      if (m) return m[1];
+    }
+  } catch {}
+  return null;
+}
+
+function TabGameInfo({ game, latestPatch }) {
   const [steamData, setSteamData] = useState(null);
 
   useEffect(() => {
@@ -253,6 +367,25 @@ function TabGameInfo({ game }) {
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* Güncel versiyon */}
+          {latestPatch && (
+            <div
+              onClick={() => openUrl(latestPatch.url).catch(() => {})}
+              style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, background: `${game.accent}10`, border: `1px solid ${game.accent}30`, cursor: "pointer", transition: "all .2s" }}
+              onMouseEnter={e => { e.currentTarget.style.background = `${game.accent}18`; e.currentTarget.style.borderColor = `${game.accent}55`; }}
+              onMouseLeave={e => { e.currentTarget.style.background = `${game.accent}10`; e.currentTarget.style.borderColor = `${game.accent}30`; }}
+            >
+              <div style={{ width: 36, height: 36, borderRadius: 8, background: `${game.accent}20`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <Activity size={16} color={game.accent} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 9, color: game.accent, letterSpacing: 1.5, fontWeight: 700, marginBottom: 3, textTransform: "uppercase" }}>Güncel Güncelleme</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{latestPatch.title}</div>
+                <div style={{ fontSize: 9, color: "rgba(255,255,255,.35)", marginTop: 2 }}>{new Date(latestPatch.date * 1000).toLocaleDateString("tr-TR", { day: "2-digit", month: "long", year: "numeric" })}</div>
+              </div>
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,.3)", flexShrink: 0 }}>Steam ›</div>
+            </div>
+          )}
           {steamData.short_description && (
             <p style={{ fontSize: 12, color: "rgba(255,255,255,.6)", lineHeight: 1.7 }}>{steamData.short_description}</p>
           )}
@@ -294,6 +427,8 @@ export default function GameDetailPage({ game, onBack, onRemove }) {
   const [focusedTab, setFocusedTab] = useState(0);
   const [focusedIdx, setFocusedIdx] = useState(0);
   const [playtime, setPlaytime] = useState(null);
+  const [gameVersion, setGameVersion] = useState(null);
+  const [latestPatch, setLatestPatch] = useState(null);
   const scrollRef = useRef(null);
 
   // ref'ler — handler'da stale closure olmadan güncel değer okumak için
@@ -318,9 +453,24 @@ export default function GameDetailPage({ game, onBack, onRemove }) {
     : null;
 
   useEffect(() => {
+    if (game.version) setGameVersion(game.version);
+    else if (game.steamAppId) fetchReleaseVersion(game.steamAppId).then(v => { if (v) setGameVersion(v); });
+
     if (game.steamAppId) {
       steamApi.getPlaytime(game.steamAppId)
         .then(r => { if (r.data.success) setPlaytime(r.data); })
+        .catch(() => {});
+
+      tauriFetch(`https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/?appid=${game.steamAppId}&count=20&maxlength=0&format=json&feeds=steam_community_announcements`, { method: "GET", headers: { Accept: "application/json" } })
+        .then(r => r.json())
+        .then(d => {
+          const items = d?.appnews?.newsitems || [];
+          const patch = items.find(n => {
+            const t = n.title?.toLowerCase() || "";
+            return t.match(/update|patch|hotfix|fix|güncelleme|yama|v\d|\d+\.\d+/) && !t.match(/beta|preview|experimental|opt.in/);
+          });
+          if (patch) setLatestPatch(patch);
+        })
         .catch(() => {});
     }
   }, [game.steamAppId]);
@@ -452,7 +602,9 @@ export default function GameDetailPage({ game, onBack, onRemove }) {
             <img src={game.cover} style={{ width: 70, height: 100, objectFit: "cover", borderRadius: 8, border: `2px solid ${game.accent}60`, boxShadow: `0 0 20px ${game.accent}40`, flexShrink: 0 }} />
           )}
           <div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: "#fff", lineHeight: 1.1, textShadow: "0 2px 8px rgba(0,0,0,.8)" }}>{game.title}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ fontSize: 22, fontWeight: 900, color: "#fff", lineHeight: 1.1, textShadow: "0 2px 8px rgba(0,0,0,.8)" }}>{game.title}</div>
+            </div>
             <div style={{ fontSize: 11, color: "rgba(255,255,255,.5)", marginTop: 4 }}>{game.subtitle}</div>
           </div>
         </div>
@@ -525,7 +677,7 @@ export default function GameDetailPage({ game, onBack, onRemove }) {
           <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
             {activeTab === 0 && <TabActivity game={game} section={section} focusedIdx={focusedIdx} />}
             {activeTab === 1 && <TabMyInfo game={game} />}
-            {activeTab === 2 && <TabGameInfo game={game} />}
+            {activeTab === 2 && <TabGameInfo game={game} latestPatch={latestPatch} />}
           </motion.div>
         </AnimatePresence>
       </div>

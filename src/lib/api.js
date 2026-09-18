@@ -102,8 +102,9 @@ export const profileApi = {
 };
 
 export const steamApi = {
-  getPlaytime:  (appId) => request("GET", `/auth/steam-playtime.php?appid=${appId}`),
-  getLibrary:   () => request("GET", "/auth/steam-playtime.php"),
+  getPlaytime:      (appId) => request("GET", `/auth/steam-playtime.php?appid=${appId}`),
+  getLibrary:       () => request("GET", "/auth/steam-playtime.php"),
+  getAchievements:  (appId) => request("GET", `/auth/steam-achievements.php?appid=${appId}`),
 };
 
 export const chatApi = {

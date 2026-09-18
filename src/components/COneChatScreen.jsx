@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Search, Send, Users, MessageCircle, X, ChevronLeft } from "lucide-react";
 import { chatApi } from "../lib/api";
 import { useAuth } from "../lib/AuthContext";
-import { useNotif } from "../lib/NotifContext";
 
 function playSound(name) {
   try { const a = new Audio(`/sounds/${name}`); a.volume = 0.4; a.play().catch(() => {}); } catch {}
@@ -30,7 +29,7 @@ function Avatar({ user, size = 36, showOnline = false }) {
   const src = user?.avatar || null;
   return (
     <div style={{ position: "relative", flexShrink: 0 }}>
-      <div style={{ width: size, height: size, borderRadius: "50%", overflow: "hidden", background: "rgba(245,166,35,.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      <div style={{ width: size, height: size, borderRadius: "50%", overflow: "hidden", background: "rgba(245,166,35,.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
         {src
           ? <img src={src} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           : <span style={{ fontSize: size * 0.38, fontWeight: 800, color: "#f5a623" }}>{user?.username?.[0]?.toUpperCase()}</span>
@@ -67,9 +66,9 @@ function Bubble({ msg, isMine, showAvatar, prevSame }) {
           borderRadius: isMine ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
           background: isMine ? "rgba(245,166,35,.18)" : "rgba(255,255,255,.07)",
           border: isMine ? "1px solid rgba(245,166,35,.3)" : "1px solid rgba(255,255,255,.1)",
-          fontSize: 13, color: "#fff", lineHeight: 1.5, wordBreak: "break-word",
+          fontSize: 13, color: "#fff", lineHeight: 1.5, wordBreak: "break-word", fontFamily: "'Segoe UI', sans-serif",
         }}>
-          {msg.body}
+          <span dangerouslySetInnerHTML={{ __html: msg.body }} />
         </div>
         <span style={{ fontSize: 9, color: "rgba(255,255,255,.25)", paddingLeft: isMine ? 0 : 4, paddingRight: isMine ? 4 : 0 }}>
           {formatMsgTime(msg.created_at)}
@@ -81,6 +80,7 @@ function Bubble({ msg, isMine, showAvatar, prevSame }) {
   );
 }
 
+// ── SOHBET PANELİ ──
 function ChatPanel({ withUser, myId, accent, onBack }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -90,6 +90,9 @@ function ChatPanel({ withUser, myId, accent, onBack }) {
   const sinceRef = useRef(null);
   const inputRef = useRef(null);
   const pollRef = useRef(null);
+
+  const getInputText = () => inputRef.current?.innerText?.trim() || "";
+  const getInputHTML = () => inputRef.current?.innerHTML || "";
 
   const load = useCallback(async (initial = false) => {
     try {
@@ -125,19 +128,18 @@ function ChatPanel({ withUser, myId, accent, onBack }) {
   }, [messages]);
 
   const send = async () => {
-    const text = input.trim();
+    const text = getInputText();
+    const html = getInputHTML();
     if (!text || sending) return;
     setInput("");
+    if (inputRef.current) inputRef.current.innerHTML = "";
     setSending(true);
     playSound("c-one_onay.wav");
     try {
-      const r = await chatApi.send(withUser.user_id || withUser.id, text);
+      const r = await chatApi.send(withUser.user_id || withUser.id, html);
       const msg = r.data.data;
       if (msg) {
-        setMessages(prev => {
-          if (prev.find(m => m.id === msg.id)) return prev;
-          return [...prev, msg];
-        });
+        setMessages(prev => prev.find(m => m.id === msg.id) ? prev : [...prev, msg]);
         sinceRef.current = msg.created_at;
       }
     } catch {}
@@ -150,8 +152,11 @@ function ChatPanel({ withUser, myId, accent, onBack }) {
   };
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 20px", borderBottom: "1px solid rgba(255,255,255,.07)", flexShrink: 0 }}>
+    // ChatPanel: tam yükseklik, flex column, overflow hidden
+    <div style={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+
+      {/* Üst bar — sabit */}
+      <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 12, padding: "14px 20px", borderBottom: "1px solid rgba(255,255,255,.07)" }}>
         <button onClick={onBack}
           style={{ width: 30, height: 30, borderRadius: "50%", background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)", color: "rgba(255,255,255,.5)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all .2s" }}
           onMouseEnter={e => { e.currentTarget.style.background = `${accent}20`; e.currentTarget.style.color = accent; }}
@@ -166,14 +171,15 @@ function ChatPanel({ withUser, myId, accent, onBack }) {
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px", display: "flex", flexDirection: "column" }}>
+      {/* Mesajlar — scroll edilebilir alan */}
+      <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "16px 20px" }}>
         {loading ? (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flex: 1, gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", gap: 8 }}>
             <div style={{ width: 16, height: 16, borderRadius: "50%", border: "2px solid rgba(255,255,255,.1)", borderTopColor: accent, animation: "spin 0.8s linear infinite" }} />
             <span style={{ fontSize: 11, color: "rgba(255,255,255,.3)" }}>Yükleniyor...</span>
           </div>
         ) : messages.length === 0 ? (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 10 }}>
             <MessageCircle size={36} color="rgba(255,255,255,.1)" />
             <div style={{ fontSize: 12, color: "rgba(255,255,255,.25)" }}>Henüz mesaj yok. İlk mesajı sen gönder!</div>
           </div>
@@ -192,20 +198,36 @@ function ChatPanel({ withUser, myId, accent, onBack }) {
         )}
       </div>
 
-      <div style={{ padding: "12px 16px", borderTop: "1px solid rgba(255,255,255,.07)", flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "flex-end", gap: 10, background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 12, padding: "8px 12px" }}>
-          <textarea
+      {/* Input — sabit */}
+      <div style={{ flexShrink: 0, padding: "12px 16px", borderTop: "1px solid rgba(255,255,255,.07)" }}>
+        {/* Format butonları */}
+        <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
+          {[
+            { label: "B", cmd: "bold",      style: { fontWeight: 800 } },
+            { label: "I", cmd: "italic",    style: { fontStyle: "italic" } },
+            { label: "U", cmd: "underline", style: { textDecoration: "underline" } },
+            { label: "S", cmd: "strikeThrough", style: { textDecoration: "line-through" } },
+          ].map(({ label, cmd, style: btnStyle }) => (
+            <button key={cmd}
+              onMouseDown={e => { e.preventDefault(); document.execCommand(cmd, false, null); inputRef.current?.focus(); }}
+              style={{ width: 26, height: 26, borderRadius: 6, border: "1px solid rgba(255,255,255,.12)", background: "rgba(255,255,255,.06)", color: "rgba(255,255,255,.6)", cursor: "pointer", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", transition: "all .15s", ...btnStyle }}
+              onMouseEnter={e => { e.currentTarget.style.background = `${accent}25`; e.currentTarget.style.color = accent; e.currentTarget.style.borderColor = `${accent}50`; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,.06)"; e.currentTarget.style.color = "rgba(255,255,255,.6)"; e.currentTarget.style.borderColor = "rgba(255,255,255,.12)"; }}
+            >{label}</button>
+          ))}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 12, padding: "8px 12px" }}>
+          <div
             ref={inputRef}
-            value={input}
-            onChange={e => setInput(e.target.value)}
+            contentEditable
+            suppressContentEditableWarning
+            onInput={e => setInput(e.currentTarget.innerHTML)}
             onKeyDown={handleKey}
-            placeholder="Mesaj yaz..."
-            rows={1}
-            style={{ flex: 1, background: "none", border: "none", outline: "none", color: "#fff", fontSize: 13, fontFamily: "inherit", resize: "none", lineHeight: 1.5, maxHeight: 100, overflowY: "auto" }}
-            onInput={e => { e.target.style.height = "auto"; e.target.style.height = Math.min(e.target.scrollHeight, 100) + "px"; }}
+            data-placeholder="Mesaj yaz..."
+            style={{ flex: 1, background: "none", border: "none", outline: "none", color: "#fff", fontSize: 13, fontFamily: "'Segoe UI', sans-serif", lineHeight: 1.5, maxHeight: 100, overflowY: "auto", minHeight: 20, wordBreak: "break-word" }}
           />
           <button onClick={send} disabled={!input.trim() || sending}
-            style={{ width: 34, height: 34, borderRadius: 9, border: "none", cursor: input.trim() ? "pointer" : "not-allowed", background: input.trim() ? accent : "rgba(255,255,255,.08)", color: input.trim() ? "#000" : "rgba(255,255,255,.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all .2s" }}
+            style={{ width: 34, height: 34, borderRadius: 9, border: "none", cursor: (input.trim() && !sending) ? "pointer" : "not-allowed", background: input.trim() ? accent : "rgba(255,255,255,.08)", color: input.trim() ? "#000" : "rgba(255,255,255,.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all .2s" }}
           >
             <Send size={14} />
           </button>
@@ -216,20 +238,19 @@ function ChatPanel({ withUser, myId, accent, onBack }) {
   );
 }
 
-export default function COneChatScreen({ onBack, accent = "#f5a623" }) {
+// ── ANA EKRAN ──
+export default function COneChatScreen({ onBack, accent = "#f5a623", initialChatUser = null }) {
   const { user } = useAuth();
-  const { push: pushNotif } = useNotif();
   const [tab, setTab] = useState("conversations");
   const [users, setUsers] = useState([]);
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [activeChat, setActiveChat] = useState(null);
+  const [activeChat, setActiveChat] = useState(initialChatUser);
   const pollRef = useRef(null);
-  const prevUnreadRef = useRef(null); // null = ilk yükleme henüz yapılmadı
+  const prevUnreadRef = useRef(null);
   const activeChatRef = useRef(null);
 
-  // activeChat'i ref'te de tut (closure sorununu önlemek için)
   useEffect(() => { activeChatRef.current = activeChat; }, [activeChat]);
 
   const openChat = useCallback((u) => {
@@ -239,46 +260,25 @@ export default function COneChatScreen({ onBack, accent = "#f5a623" }) {
     setConversations(prev => prev.map(c =>
       (c.user_id === (u.user_id || u.id)) ? { ...c, unread: 0 } : c
     ));
-    if (prevUnreadRef.current) {
-      prevUnreadRef.current[u.user_id || u.id] = 0;
-    }
+    if (prevUnreadRef.current) prevUnreadRef.current[u.user_id || u.id] = 0;
   }, []);
 
   const loadData = useCallback(async () => {
     try {
-      const [onlineRes, convRes] = await Promise.all([
-        chatApi.online(),
-        chatApi.conversations(),
-      ]);
+      const [onlineRes, convRes] = await Promise.all([chatApi.online(), chatApi.conversations()]);
       setUsers(onlineRes.data.data || onlineRes.data || []);
       const convs = convRes.data.data || convRes.data || [];
       setConversations(convs);
-
       if (prevUnreadRef.current === null) {
-        // İlk yükleme — mevcut unread'leri baseline olarak kaydet, bildirim verme
         const baseline = {};
         convs.forEach(c => { baseline[c.user_id] = c.unread; });
         prevUnreadRef.current = baseline;
       } else {
-        // Sonraki poll'lar — artış varsa bildirim ver
-        convs.forEach(c => {
-          const prev = prevUnreadRef.current[c.user_id] ?? 0;
-          const active = activeChatRef.current;
-          const isActive = active && (active.user_id === c.user_id || active.id === c.user_id);
-          if (c.unread > prev && !isActive) {
-            pushNotif(
-              `${c.username} sana mesaj gönderdi`,
-              c.last_body ? (c.last_body.length > 60 ? c.last_body.slice(0, 60) + "..." : c.last_body) : "",
-              "info",
-              () => openChat(c)
-            );
-          }
-          prevUnreadRef.current[c.user_id] = c.unread;
-        });
+        convs.forEach(c => { prevUnreadRef.current[c.user_id] = c.unread; });
       }
     } catch {}
     setLoading(false);
-  }, [pushNotif, openChat]);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -294,16 +294,31 @@ export default function COneChatScreen({ onBack, accent = "#f5a623" }) {
     <motion.div
       initial={{ opacity: 0, x: 60 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 60 }}
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      style={{ position: "absolute", inset: 0, zIndex: 40, background: "#0a0a0f", display: "flex", fontFamily: "var(--c1-font, 'LemonMilk', 'Segoe UI', sans-serif)", overflow: "hidden" }}
+      style={{
+        position: "absolute", inset: 0, zIndex: 40,
+        background: "#0a0a0f",
+        display: "flex",
+        fontFamily: "var(--c1-font, 'LemonMilk', 'Segoe UI', sans-serif)",
+        overflow: "hidden", // dışarı taşmayı engelle
+      }}
     >
+      {/* Arka plan */}
       <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
         <div style={{ position: "absolute", width: 500, height: 500, borderRadius: "50%", background: `radial-gradient(circle, ${accent}12 0%, transparent 70%)`, top: -150, left: -100 }} />
         <div style={{ position: "absolute", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(124,58,237,.1) 0%, transparent 70%)", bottom: -100, right: -100 }} />
       </div>
 
-      {/* SOL PANEL */}
-      <div style={{ position: "relative", zIndex: 2, width: "clamp(200px, 22vw, 320px)", borderRight: "1px solid rgba(255,255,255,.07)", display: "flex", flexDirection: "column", flexShrink: 0 }}>
-        <div style={{ padding: "16px 18px", borderBottom: "1px solid rgba(255,255,255,.06)", flexShrink: 0 }}>
+      {/* ── SOL PANEL — sabit genişlik, kendi içinde scroll ── */}
+      <div style={{
+        position: "relative", zIndex: 2,
+        width: "clamp(200px, 22vw, 320px)", flexShrink: 0,
+        borderRight: "1px solid rgba(255,255,255,.07)",
+        display: "flex", flexDirection: "column",
+        height: "100%", overflow: "hidden",
+        background: "rgba(15,12,10,.85)",
+      }}>
+        {/* Başlık — sabit */}
+        <div style={{ flexShrink: 0, padding: "16px 18px", borderBottom: "1px solid rgba(255,255,255,.06)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
             <button onClick={() => { playSound("c-one_back.wav"); onBack(); }}
               style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(255,255,255,.07)", border: "1px solid rgba(255,255,255,.12)", color: "rgba(255,255,255,.7)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all .2s" }}
@@ -330,7 +345,8 @@ export default function COneChatScreen({ onBack, accent = "#f5a623" }) {
           </div>
         </div>
 
-        <div style={{ display: "flex", padding: "8px 12px", gap: 4, borderBottom: "1px solid rgba(255,255,255,.06)", flexShrink: 0 }}>
+        {/* Tab seçici — sabit */}
+        <div style={{ flexShrink: 0, display: "flex", padding: "8px 12px", gap: 4, borderBottom: "1px solid rgba(255,255,255,.06)" }}>
           {[
             { key: "conversations", label: "Sohbetler", icon: MessageCircle },
             { key: "online",        label: "Üyeler",    icon: Users },
@@ -346,7 +362,8 @@ export default function COneChatScreen({ onBack, accent = "#f5a623" }) {
           })}
         </div>
 
-        <div style={{ flex: 1, overflowY: "auto" }}>
+        {/* Liste — scroll edilebilir */}
+        <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
           {loading ? (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 100, gap: 8 }}>
               <div style={{ width: 14, height: 14, borderRadius: "50%", border: "2px solid rgba(255,255,255,.1)", borderTopColor: accent, animation: "spin 0.8s linear infinite" }} />
@@ -360,9 +377,9 @@ export default function COneChatScreen({ onBack, accent = "#f5a623" }) {
               </div>
             ) : filteredConvos.map(c => (
               <div key={c.user_id} onClick={() => openChat(c)}
-                style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", cursor: "pointer", transition: "background .15s", background: activeChat && (activeChat.user_id === c.user_id) ? `${accent}10` : "transparent", borderLeft: activeChat && (activeChat.user_id === c.user_id) ? `3px solid ${accent}` : "3px solid transparent" }}
-                onMouseEnter={e => { if (!(activeChat && activeChat.user_id === c.user_id)) e.currentTarget.style.background = "rgba(255,255,255,.04)"; }}
-                onMouseLeave={e => { if (!(activeChat && activeChat.user_id === c.user_id)) e.currentTarget.style.background = "transparent"; }}
+                style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", cursor: "pointer", transition: "background .15s", background: activeChat?.user_id === c.user_id ? `${accent}10` : "transparent", borderLeft: activeChat?.user_id === c.user_id ? `3px solid ${accent}` : "3px solid transparent" }}
+                onMouseEnter={e => { if (activeChat?.user_id !== c.user_id) e.currentTarget.style.background = "rgba(255,255,255,.04)"; }}
+                onMouseLeave={e => { if (activeChat?.user_id !== c.user_id) e.currentTarget.style.background = "transparent"; }}
               >
                 <Avatar user={c} size={38} showOnline />
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -410,15 +427,22 @@ export default function COneChatScreen({ onBack, accent = "#f5a623" }) {
         </div>
       </div>
 
-      {/* SAĞ PANEL */}
-      <div style={{ position: "relative", zIndex: 2, flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+      {/* ── SAĞ PANEL — kalan alan, ChatPanel kendi içinde yönetir ── */}
+      <div style={{ position: "relative", zIndex: 2, flex: 1, minWidth: 0, height: "100%" }}>
         <AnimatePresence mode="wait">
           {activeChat ? (
-            <motion.div key={activeChat.user_id || activeChat.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }} style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+            <motion.div
+              key={activeChat.user_id || activeChat.id}
+              initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+              style={{ height: "100%" }}
+            >
               <ChatPanel withUser={activeChat} myId={user?.id} accent={accent} onBack={() => setActiveChat(null)} />
             </motion.div>
           ) : (
-            <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14 }}>
+            <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14 }}
+            >
               <div style={{ width: 64, height: 64, borderRadius: "50%", background: `${accent}10`, border: `1px solid ${accent}20`, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <MessageCircle size={28} color={`${accent}60`} />
               </div>
@@ -431,7 +455,7 @@ export default function COneChatScreen({ onBack, accent = "#f5a623" }) {
         </AnimatePresence>
       </div>
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } } [contenteditable]:empty:before { content: attr(data-placeholder); color: rgba(255,255,255,.25); pointer-events: none; }`}</style>
     </motion.div>
   );
 }

@@ -87,6 +87,14 @@ function NotifToast({ toast, onDismiss }) {
   const Icon = cfg.icon;
   const isAchievement = toast.type === "achievement";
 
+  useEffect(() => {
+    try { const a = new Audio("/sounds/c-one_navigation.wav"); a.volume = 0.4; a.play().catch(() => {}); } catch {}
+  }, []);
+
+  useEffect(() => {
+    try { const a = new Audio("/sounds/c-one_navigation.wav"); a.volume = 0.4; a.play().catch(() => {}); } catch {}
+  }, []);
+
   return (
     <motion.div
       layout
@@ -164,18 +172,20 @@ function NotifToast({ toast, onDismiss }) {
         </button>
       </div>
 
-      {/* Alt progress bar */}
-      <motion.div
-        initial={{ scaleX: 1 }}
-        animate={{ scaleX: 0 }}
-        transition={{ duration: 5, ease: "linear" }}
-        style={{
-          position: "absolute", bottom: 0, left: 3, right: 0, height: 2,
-          background: cfg.color, opacity: 0.5,
-          transformOrigin: "left",
-          borderRadius: "0 0 12px 0",
-        }}
-      />
+      {/* Alt progress bar - sadece kalıcı olmayan toast'larda */}
+      {!toast.persistent && (
+        <motion.div
+          initial={{ scaleX: 1 }}
+          animate={{ scaleX: 0 }}
+          transition={{ duration: 5, ease: "linear" }}
+          style={{
+            position: "absolute", bottom: 0, left: 3, right: 0, height: 2,
+            background: cfg.color, opacity: 0.5,
+            transformOrigin: "left",
+            borderRadius: "0 0 12px 0",
+          }}
+        />
+      )}
     </motion.div>
   );
 }

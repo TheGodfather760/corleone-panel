@@ -15,23 +15,24 @@ import COneEventsScreen from "./COneEventsScreen";
 import COneDownloadsScreen from "./COneDownloadsScreen";
 import COneNewsScreen from "./COneNewsScreen";
 import COneChatScreen from "./COneChatScreen";
+import EventReminderBanner from "./EventReminderBanner";
 
 // Bilinen oyunlar kataloğu (Steam'den çekilen listeye ek meta)
 const KNOWN_GAMES = {
-  227300: { id: "ets2",    subtitle: "Corleone ETS2 Topluluğu",      accent: "#f5a623", screenshotDir: "Euro Truck Simulator 2" },
-  270880: { id: "ats",     subtitle: "Corleone ATS Topluluğu",       accent: "#3b82f6", screenshotDir: "American Truck Simulator" },
-  244210: { id: "assetto", subtitle: "Gerçekçi Yarış Simülasyonu",   accent: "#e74c3c", screenshotDir: "Assetto Corsa" },
-  1551360:{ id: "forza5",  subtitle: "Meksika'da Açık Dünya Yarışı", accent: "#2ecc71", screenshotDir: null },
-  2440510:{ id: "forza6",  subtitle: "Pist Yarışı Simülasyonu",      accent: "#3b82f6", screenshotDir: null },
-  1209420:{ id: "bus",     subtitle: "Şehir İçi Otobüs Deneyimi",   accent: "#f59e0b", screenshotDir: null },
-  730:    { id: "csgo",    subtitle: "Taktiksel Nişancı",            accent: "#f5a623", screenshotDir: "Counter-Strike Global Offensive" },
-  570:    { id: "dota2",   subtitle: "MOBA Klasiği",                 accent: "#e74c3c", screenshotDir: null },
-  578080: { id: "pubg",    subtitle: "Battle Royale",                accent: "#f5a623", screenshotDir: null },
-  1172470:{ id: "apex",    subtitle: "Battle Royale",                accent: "#e74c3c", screenshotDir: null },
-  1091500:{ id: "cp2077",  subtitle: "Açık Dünya RPG",               accent: "#f5a623", screenshotDir: "Cyberpunk 2077" },
-  1245620:{ id: "elden",   subtitle: "Souls-like RPG",               accent: "#f59e0b", screenshotDir: null },
-  1174180:{ id: "rdr2",    subtitle: "Açık Dünya Western",           accent: "#e74c3c", screenshotDir: null },
-  271590: { id: "gta5",    subtitle: "Açık Dünya Aksiyon",           accent: "#2ecc71", screenshotDir: null },
+  227300: { id: "ets2",    subtitle: "Corleone ETS2 Topluluğu",      accent: "#f5a623", screenshotDir: "Euro Truck Simulator 2",          version: "1.60" },
+  270880: { id: "ats",     subtitle: "Corleone ATS Topluluğu",       accent: "#3b82f6", screenshotDir: "American Truck Simulator",         version: "1.61" },
+  244210: { id: "assetto", subtitle: "Gerçekçi Yarış Simülasyonu",   accent: "#e74c3c", screenshotDir: "Assetto Corsa",                    version: null },
+  1551360:{ id: "forza5",  subtitle: "Meksika'da Açık Dünya Yarışı", accent: "#2ecc71", screenshotDir: null,                               version: null },
+  2440510:{ id: "forza6",  subtitle: "Pist Yarışı Simülasyonu",      accent: "#3b82f6", screenshotDir: null,                               version: null },
+  1209420:{ id: "bus",     subtitle: "Şehir İçi Otobüs Deneyimi",   accent: "#f59e0b", screenshotDir: null,                               version: null },
+  730:    { id: "csgo",    subtitle: "Taktiksel Nişancı",            accent: "#f5a623", screenshotDir: "Counter-Strike Global Offensive",   version: null },
+  570:    { id: "dota2",   subtitle: "MOBA Klasiği",                 accent: "#e74c3c", screenshotDir: null,                               version: null },
+  578080: { id: "pubg",    subtitle: "Battle Royale",                accent: "#f5a623", screenshotDir: null,                               version: null },
+  1172470:{ id: "apex",    subtitle: "Battle Royale",                accent: "#e74c3c", screenshotDir: null,                               version: null },
+  1091500:{ id: "cp2077",  subtitle: "Açık Dünya RPG",               accent: "#f5a623", screenshotDir: "Cyberpunk 2077",                   version: null },
+  1245620:{ id: "elden",   subtitle: "Souls-like RPG",               accent: "#f59e0b", screenshotDir: null,                               version: null },
+  1174180:{ id: "rdr2",    subtitle: "Açık Dünya Western",           accent: "#e74c3c", screenshotDir: null,                               version: null },
+  271590: { id: "gta5",    subtitle: "Açık Dünya Aksiyon",           accent: "#2ecc71", screenshotDir: null,                               version: null },
 };
 
 const PRIORITY_APPIDS = [227300, 270880]; // ETS2, ATS — her zaman önce önerilir
@@ -59,6 +60,7 @@ function buildGameEntry(appId, name, playtime = 0) {
     accent:        meta.accent || "#f5a623",
     steamAppId:    appId,
     screenshotDir: meta.screenshotDir || null,
+    version:       meta.version || null,
     tag:           null,
     tagColor:      null,
     favorite:      false,
@@ -698,59 +700,95 @@ const PLAYLIST = [
   { title: "Make It Bun Dem",  file: "/Musics/Far Cry 3 Soundtrack - Make It Bun Dem [1aXrLt9a6eE].mp3" },
 ];
 
-// Animasyonlu arka plan
 function BigBg({ accent }) {
   return (
     <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
       <div style={{ position: "absolute", inset: 0, background: "#0a0a0f" }} />
-      <div style={{
-        position: "absolute", width: 700, height: 700, borderRadius: "50%",
-        background: `radial-gradient(circle, ${accent}22 0%, transparent 70%)`,
-        top: -200, left: -150,
-        animation: "bgOrb1 14s ease-in-out infinite",
-      }} />
-      <div style={{
-        position: "absolute", width: 500, height: 500, borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(124,58,237,.18) 0%, transparent 70%)",
-        bottom: -100, right: -100,
-        animation: "bgOrb2 18s ease-in-out infinite",
-      }} />
-      <div style={{
-        position: "absolute", width: 400, height: 400, borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(245,166,35,.08) 0%, transparent 70%)",
-        top: "40%", left: "45%",
-        animation: "bgOrb3 11s ease-in-out infinite",
-      }} />
-      {/* Çizgiler */}
-      <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.12 }}>
+
+      <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
         <defs>
-          <linearGradient id="bgl1" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor={accent} stopOpacity="0" />
-            <stop offset="50%" stopColor={accent} stopOpacity="1" />
-            <stop offset="100%" stopColor="#7c3aed" stopOpacity="0" />
+          {/* Turuncu gradientler */}
+          <linearGradient id="og1" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="transparent" />
+            <stop offset="30%" stopColor={accent} stopOpacity="0.6" />
+            <stop offset="70%" stopColor={accent} stopOpacity="0.6" />
+            <stop offset="100%" stopColor="transparent" />
           </linearGradient>
-          <linearGradient id="bgl2" x1="100%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#7c3aed" stopOpacity="0" />
-            <stop offset="50%" stopColor="#7c3aed" stopOpacity="1" />
-            <stop offset="100%" stopColor={accent} stopOpacity="0" />
+          <linearGradient id="og2" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="transparent" />
+            <stop offset="40%" stopColor={accent} stopOpacity="0.35" />
+            <stop offset="60%" stopColor={accent} stopOpacity="0.35" />
+            <stop offset="100%" stopColor="transparent" />
+          </linearGradient>
+          {/* Mor gradientler */}
+          <linearGradient id="pg1" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="transparent" />
+            <stop offset="30%" stopColor="#7c3aed" stopOpacity="0.6" />
+            <stop offset="70%" stopColor="#7c3aed" stopOpacity="0.6" />
+            <stop offset="100%" stopColor="transparent" />
+          </linearGradient>
+          <linearGradient id="pg2" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="transparent" />
+            <stop offset="40%" stopColor="#a855f7" stopOpacity="0.35" />
+            <stop offset="60%" stopColor="#a855f7" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="transparent" />
           </linearGradient>
         </defs>
-        <line x1="-5%" y1="25%" x2="105%" y2="75%" stroke="url(#bgl1)" strokeWidth="1" style={{ animation: "lineAnim 10s ease-in-out infinite" }} />
-        <line x1="-5%" y1="65%" x2="105%" y2="15%" stroke="url(#bgl2)" strokeWidth="1" style={{ animation: "lineAnim 13s ease-in-out infinite reverse" }} />
-        <line x1="15%" y1="-5%" x2="85%" y2="105%" stroke="url(#bgl1)" strokeWidth="0.5" style={{ animation: "lineAnim 9s ease-in-out infinite 2s" }} />
+
+        {/* Turuncu çizgiler — kıvrımlı */}
+        <path d="M-100,200 C200,100 400,350 700,180 S1100,80 1400,220" fill="none" stroke="url(#og1)" strokeWidth="2.5" strokeLinecap="round">
+          <animateTransform attributeName="transform" type="translate" values="0,0; 0,-60; 0,30; 0,0" dur="12s" repeatCount="indefinite" calcMode="spline" keySplines=".4,0,.2,1; .4,0,.2,1; .4,0,.2,1" />
+          <animate attributeName="opacity" values="0;1;1;0" dur="12s" repeatCount="indefinite" calcMode="spline" keySplines=".4,0,.2,1; .4,0,.2,1; .4,0,.2,1" />
+        </path>
+        <path d="M-100,420 C150,300 450,500 750,350 S1050,250 1400,400" fill="none" stroke="url(#og2)" strokeWidth="1.8" strokeLinecap="round">
+          <animateTransform attributeName="transform" type="translate" values="0,0; 0,-80; 0,20; 0,0" dur="15s" repeatCount="indefinite" calcMode="spline" keySplines=".4,0,.2,1; .4,0,.2,1; .4,0,.2,1" begin="2s" />
+          <animate attributeName="opacity" values="0;0.8;0.8;0" dur="15s" repeatCount="indefinite" begin="2s" calcMode="spline" keySplines=".4,0,.2,1; .4,0,.2,1; .4,0,.2,1" />
+        </path>
+        <path d="M-100,600 C300,480 500,680 800,520 S1100,420 1400,580" fill="none" stroke="url(#og1)" strokeWidth="1.5" strokeLinecap="round">
+          <animateTransform attributeName="transform" type="translate" values="0,0; 0,-50; 0,40; 0,0" dur="18s" repeatCount="indefinite" calcMode="spline" keySplines=".4,0,.2,1; .4,0,.2,1; .4,0,.2,1" begin="4s" />
+          <animate attributeName="opacity" values="0;0.6;0.6;0" dur="18s" repeatCount="indefinite" begin="4s" calcMode="spline" keySplines=".4,0,.2,1; .4,0,.2,1; .4,0,.2,1" />
+        </path>
+
+        {/* Mor çizgiler — kıvrımlı */}
+        <path d="M-100,150 C250,280 450,100 750,260 S1100,180 1400,120" fill="none" stroke="url(#pg1)" strokeWidth="2.5" strokeLinecap="round">
+          <animateTransform attributeName="transform" type="translate" values="0,0; 0,70; 0,-30; 0,0" dur="13s" repeatCount="indefinite" calcMode="spline" keySplines=".4,0,.2,1; .4,0,.2,1; .4,0,.2,1" begin="1s" />
+          <animate attributeName="opacity" values="0;1;1;0" dur="13s" repeatCount="indefinite" begin="1s" calcMode="spline" keySplines=".4,0,.2,1; .4,0,.2,1; .4,0,.2,1" />
+        </path>
+        <path d="M-100,350 C200,480 500,280 800,440 S1100,340 1400,300" fill="none" stroke="url(#pg2)" strokeWidth="1.8" strokeLinecap="round">
+          <animateTransform attributeName="transform" type="translate" values="0,0; 0,60; 0,-40; 0,0" dur="16s" repeatCount="indefinite" calcMode="spline" keySplines=".4,0,.2,1; .4,0,.2,1; .4,0,.2,1" begin="3s" />
+          <animate attributeName="opacity" values="0;0.8;0.8;0" dur="16s" repeatCount="indefinite" begin="3s" calcMode="spline" keySplines=".4,0,.2,1; .4,0,.2,1; .4,0,.2,1" />
+        </path>
+        <path d="M-100,520 C300,380 600,560 900,400 S1200,480 1400,460" fill="none" stroke="url(#pg1)" strokeWidth="1.5" strokeLinecap="round">
+          <animateTransform attributeName="transform" type="translate" values="0,0; 0,80; 0,-20; 0,0" dur="20s" repeatCount="indefinite" calcMode="spline" keySplines=".4,0,.2,1; .4,0,.2,1; .4,0,.2,1" begin="5s" />
+          <animate attributeName="opacity" values="0;0.5;0.5;0" dur="20s" repeatCount="indefinite" begin="5s" calcMode="spline" keySplines=".4,0,.2,1; .4,0,.2,1; .4,0,.2,1" />
+        </path>
       </svg>
-      <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,.55)" }} />
+
+      {/* Orb'lar */}
+      <div style={{
+        position: "absolute", width: 700, height: 700, borderRadius: "50%",
+        background: `radial-gradient(circle, ${accent}14 0%, transparent 70%)`,
+        top: -200, left: -150,
+        animation: "bgOrb1 16s ease-in-out infinite",
+      }} />
+      <div style={{
+        position: "absolute", width: 600, height: 600, borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(124,58,237,.12) 0%, transparent 70%)",
+        bottom: -100, right: -100,
+        animation: "bgOrb2 20s ease-in-out infinite",
+      }} />
+
+      <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,.5)" }} />
+
       <style>{`
-        @keyframes bgOrb1 { 0%,100%{transform:translate(0,0) scale(1)} 40%{transform:translate(80px,50px) scale(1.1)} 70%{transform:translate(-40px,80px) scale(.95)} }
-        @keyframes bgOrb2 { 0%,100%{transform:translate(0,0) scale(1)} 40%{transform:translate(-60px,-50px) scale(1.08)} 70%{transform:translate(50px,-70px) scale(.93)} }
-        @keyframes bgOrb3 { 0%,100%{transform:translate(-50%,-50%) scale(1);opacity:.6} 50%{transform:translate(-50%,-50%) scale(1.3);opacity:.25} }
-        @keyframes lineAnim { 0%,100%{opacity:.12} 50%{opacity:.28} }
+        @keyframes bgOrb1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(70px,50px)} }
+        @keyframes bgOrb2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-60px,-50px)} }
       `}</style>
     </div>
   );
 }
 
-export default function BigModeScreen({ onExit }) {
+export default function BigModeScreen({ onExit, initialChat = null }) {
   const { user } = useAuth();
   const { settings } = useSettings();
   const [games, setGames] = useState(() => loadGames());
@@ -764,7 +802,9 @@ export default function BigModeScreen({ onExit }) {
   const [eventsOpen, setEventsOpen] = useState(false);
   const [downloadsOpen, setDownloadsOpen] = useState(false);
   const [newsOpen, setNewsOpen] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(!!initialChat);
+  const [chatInitUser, setChatInitUser] = useState(initialChat);
+  const [reminderEvent, setReminderEvent] = useState(null);
   const [exitConfirm, setExitConfirm] = useState(false);
   const [direction, setDirection] = useState(1);
   const [focusZone, setFocusZone] = useState("cards");
@@ -775,6 +815,26 @@ export default function BigModeScreen({ onExit }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [musicTime, setMusicTime] = useState({ current: 0, duration: 0 });
   const isPlayingRef = useRef(false);
+
+  // Yaklaşan etkinlik banner
+  useEffect(() => {
+    const check = () => {
+      eventsApi.list()
+        .then(r => {
+          const all = r.data.data || r.data || [];
+          const now = Date.now();
+          const upcoming = all
+            .filter(e => e.status === "upcoming" && e.event_date && new Date(e.event_date).getTime() > now)
+            .filter(e => new Date(e.event_date).getTime() - now <= 24 * 60 * 60 * 1000)
+            .sort((a, b) => new Date(a.event_date) - new Date(b.event_date));
+          if (upcoming.length > 0) setReminderEvent(prev => prev ? prev : upcoming[0]);
+        })
+        .catch(() => {});
+    };
+    check();
+    const t = setInterval(check, 60 * 1000); // her 1 dakikada bir
+    return () => clearInterval(t);
+  }, []);
 
   // Ayarlardan müzik durumunu başlat
   useEffect(() => {
@@ -972,7 +1032,7 @@ export default function BigModeScreen({ onExit }) {
   });
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 99998, display: "flex", flexDirection: "column", fontFamily: "var(--c1-font, 'LemonMilk', 'Segoe UI', sans-serif)", fontSize: `calc(14px * var(--c1-scale, 1))`, overflow: "hidden", background: "#0a0a0f" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 99998, display: "flex", flexDirection: "column", fontFamily: "var(--c1-font, 'Segoe UI', sans-serif)", fontSize: `calc(14px * var(--c1-scale, 1))`, overflow: "hidden", background: "#0a0a0f" }}>
 
       {/* Çıkış onay modalı */}
       <AnimatePresence>
@@ -1022,8 +1082,9 @@ export default function BigModeScreen({ onExit }) {
       <AnimatePresence>
         {chatOpen && (
           <COneChatScreen
-            onBack={() => { playBackSound(); setChatOpen(false); }}
+            onBack={() => { playBackSound(); setChatOpen(false); setChatInitUser(null); }}
             accent={game?.accent || "#f5a623"}
+            initialChatUser={chatInitUser}
           />
         )}
       </AnimatePresence>
@@ -1118,6 +1179,14 @@ export default function BigModeScreen({ onExit }) {
           />
         )}
       </AnimatePresence>
+
+      {/* Yaklaşan etkinlik banner */}
+      {reminderEvent && (
+        <EventReminderBanner
+          event={reminderEvent}
+          onDismiss={() => setReminderEvent(null)}
+        />
+      )}
 
       {/* Animasyonlu arka plan */}
       <AnimatePresence mode="sync">

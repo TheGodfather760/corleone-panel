@@ -2,7 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSettings } from "../lib/SettingsContext";
 import { useAuth } from "../lib/AuthContext";
-import { ChevronLeft, ChevronDown, Music, Palette, Settings, Volume2, VolumeX, LogOut } from "lucide-react";
+import { useUpdate } from "../lib/UpdateContext";
+import { ChevronLeft, ChevronDown, Music, Palette, Settings, Volume2, VolumeX, LogOut, RefreshCw, Download } from "lucide-react";
 
 const ACCENT_COLORS = [
   { label: "Turuncu",  value: "#f5a623" },
@@ -135,14 +136,16 @@ function FontDropdown({ value, onChange, accent }) {
 export default function COneSettingsScreen({ onBack, bgMusicRef, isPlaying, onTogglePlay, onVolumeChange }) {
   const { settings, update } = useSettings();
   const { logout } = useAuth();
+  const { updateInfo, status: updateStatus, checkUpdate, installUpdate, downloadProgress } = useUpdate();
   const [activeSection, setActiveSection] = useState(0);
 
   const accent = settings.c1_accentColor || "#f5a623";
 
   const SECTIONS = [
-    { label: "GENEL",         icon: Settings },
-    { label: "C-ONE GÖRÜNÜM", icon: Palette  },
-    { label: "MÜZİK",         icon: Music    },
+    { label: "GENEL",         icon: Settings  },
+    { label: "C-ONE GÖRÜNÜM", icon: Palette   },
+    { label: "MÜZİK",         icon: Music     },
+    { label: "GÜNCELLEME",    icon: RefreshCw },
   ];
 
   return (
@@ -346,6 +349,56 @@ export default function COneSettingsScreen({ onBack, bgMusicRef, isPlaying, onTo
                       {isPlaying ? "⏸ DURAKLAT" : "▶ OYNAT"}
                     </button>
                   </Row>
+                </div>
+              )}
+
+              {/* ── GÜNCELLEME ── */}
+              {activeSection === 3 && (
+                <div>
+                  <SectionTitle icon={RefreshCw} title="Güncelleme" accent={accent} />
+
+                  <div style={{ padding: "20px", borderRadius: 12, background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)", marginBottom: 20 }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "#fff", marginBottom: 4 }}>Uygulama Güncellemesi</div>
+                        <div style={{ fontSize: 10, color: "rgba(255,255,255,.35)" }}>
+                          {updateStatus === "available"
+                            ? <span style={{ color: accent }}>&#8595; {updateInfo?.version} sürümü mevcut!</span>
+                            : updateStatus === "latest" ? <span style={{ color: "#2ecc71" }}>✓ Güncel sürümü kullanıyorsunuz</span>
+                            : updateStatus === "checking" ? "Kontrol ediliyor..."
+                            : updateStatus === "downloading" ? `İndiriliyor... %${downloadProgress}`
+                            : updateStatus === "error" ? <span style={{ color: "#e74c3c" }}>Kontrol edilemedi</span>
+                            : "Güncelleme kontrolü yapılmadı"}
+                        </div>
+                      </div>
+                      <button onClick={checkUpdate}
+                        disabled={updateStatus === "checking" || updateStatus === "downloading"}
+                        style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 8, border: `1px solid ${accent}40`, background: `${accent}15`, color: accent, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: (updateStatus === "checking" || updateStatus === "downloading") ? .5 : 1 }}
+                      >
+                        <RefreshCw size={12} style={{ animation: updateStatus === "checking" ? "spin 1s linear infinite" : "none" }} />
+                        KONTROL ET
+                      </button>
+                    </div>
+
+                    {updateStatus === "downloading" && (
+                      <div style={{ marginBottom: 12 }}>
+                        <div style={{ height: 4, borderRadius: 4, background: "rgba(255,255,255,.1)", overflow: "hidden" }}>
+                          <div style={{ height: "100%", width: `${downloadProgress}%`, background: accent, borderRadius: 4, transition: "width .3s" }} />
+                        </div>
+                        <div style={{ fontSize: 10, color: "rgba(255,255,255,.4)", marginTop: 6 }}>%{downloadProgress} indirildi...</div>
+                      </div>
+                    )}
+
+                    {updateStatus === "available" && (
+                      <button onClick={installUpdate}
+                        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 10, border: `1px solid ${accent}60`, background: `${accent}20`, color: accent, fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", transition: "all .2s" }}
+                        onMouseEnter={e => e.currentTarget.style.background = `${accent}35`}
+                        onMouseLeave={e => e.currentTarget.style.background = `${accent}20`}
+                      >
+                        <Download size={15} /> GÜNCELLEMEYİ YÜKLE VE YENDEN BAŞlAT
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
 

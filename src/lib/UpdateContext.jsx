@@ -5,21 +5,28 @@ import { relaunch } from "@tauri-apps/plugin-process";
 const UpdateContext = createContext(null);
 
 export function UpdateProvider({ children }) {
-  const [updateInfo, setUpdateInfo] = useState(null); // { version, update }
-  const [status, setStatus] = useState(null); // null | checking | available | latest | downloading | error
+  const [updateInfo, setUpdateInfo] = useState(null);
+  const [status, setStatus] = useState(null);
   const [lastChecked, setLastChecked] = useState(null);
-  const [downloadProgress, setDownloadProgress] = useState(0); // 0-100
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [_pushNotif, setPushNotif] = useState(null);
 
-  // Uygulama açılınca otomatik kontrol
-  useEffect(() => { checkUpdate(); }, []);
-
-  const checkUpdate = useCallback(async () => {
+  const checkUpdate = useCallback(async (pushFn) => {
     setStatus("checking");
     try {
       const u = await check();
       if (u?.available) {
         setUpdateInfo({ version: u.version, update: u });
         setStatus("available");
+        // Kalıcı bildirim gönder
+        const fn = pushFn || _pushNotif;
+        if (fn) fn(
+          `Yeni sürüm mevcut: v${u.version}`,
+          "Ayarlar > Güncelleme bölümünden yükleyebilirsiniz.",
+          "download",
+          null,
+          true // persistent
+        );
       } else {
         setUpdateInfo(null);
         setStatus("latest");
@@ -30,7 +37,7 @@ export function UpdateProvider({ children }) {
       setStatus("error");
       setTimeout(() => setStatus(null), 3000);
     }
-  }, []);
+  }, [_pushNotif]);
 
   const installUpdate = useCallback(async () => {
     if (!updateInfo) return;
@@ -58,7 +65,7 @@ export function UpdateProvider({ children }) {
   }, [updateInfo]);
 
   return (
-    <UpdateContext.Provider value={{ updateInfo, status, lastChecked, downloadProgress, checkUpdate, installUpdate }}>
+    <UpdateContext.Provider value={{ updateInfo, status, lastChecked, downloadProgress, checkUpdate, installUpdate, setPushNotif }}>
       {children}
     </UpdateContext.Provider>
   );

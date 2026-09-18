@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AuthProvider, useAuth } from "./lib/AuthContext";
 import { SettingsProvider, useSettings } from "./lib/SettingsContext";
 import { NotifProvider } from "./lib/NotifContext";
@@ -93,7 +93,8 @@ export default function App() {
 
 function AppWithIntro() {
   const { settings } = useSettings();
-  const [introDone, setIntroDone] = useState(settings.skipIntro);
+  const isDev = import.meta.env.DEV;
+  const [introDone, setIntroDone] = useState(settings.skipIntro || isDev);
 
   return (
     <>

@@ -105,7 +105,8 @@ export default function AppLayout({ children }) {
   const { user, logout } = useAuth();
   const { settings } = useSettings();
   const { inbox, clearInbox } = useNotif();
-  const { updateInfo, status: updateStatus, installUpdate, downloadProgress } = useUpdate();
+  const { updateInfo, status: updateStatus, installUpdate, downloadProgress, setPushNotif, checkUpdate } = useUpdate();
+  const { push: pushNotif } = useNotif();
   const updating = updateStatus === "downloading";
   const logoSrc = LOGOS[settings.sidebarLogo] ?? LOGOS.logotype2025;
   const isAdmin = user?.role === "admin" || user?.role === "moderator";
@@ -113,12 +114,25 @@ export default function AppLayout({ children }) {
   const [inboxOpen, setInboxOpen] = useState(false);
   const [bigMode, setBigMode] = useState(false);
   const [bigIntro, setBigIntro] = useState(false);
+  const [initialChat, setInitialChat] = useState(null);
   const inboxRef = useRef(null);
+
+  // open-chat eventi dinle
+  useEffect(() => {
+    const handler = (e) => {
+      setInitialChat(e.detail);
+      setBigMode(true);
+    };
+    window.addEventListener("open-chat", handler);
+    return () => window.removeEventListener("open-chat", handler);
+  }, []);
+
+  const isDev = import.meta.env.DEV;
 
   // Başlangıçta C-ONE aç ayarı
   useEffect(() => {
     if (settings.c1_startWithBigMode) {
-      if (settings.c1_showIntro) setBigIntro(true);
+      if (settings.c1_showIntro && !isDev) setBigIntro(true);
       else setBigMode(true);
     }
   }, []);
@@ -126,7 +140,18 @@ export default function AppLayout({ children }) {
   useEffect(() => {
     getVersion()
       .then(v => { setVersion(v); heartbeatApi.ping(v).catch(() => {}); })
-      .catch(() => { setVersion("0.6.2"); heartbeatApi.ping("0.6.2").catch(() => {}); });
+      .catch(() => { setVersion("0.7.0"); heartbeatApi.ping("0.7.0").catch(() => {}); });
+
+    // Her 2 dakikada bir last_seen güncelle
+    const hbInterval = setInterval(() => {
+      getVersion().then(v => heartbeatApi.ping(v).catch(() => {})).catch(() => heartbeatApi.ping("0.7.0").catch(() => {}));
+    }, 120000);
+
+    // push fonksiyonunu UpdateContext'e kaydet ve güncelleme kontrol et
+    setPushNotif(() => pushNotif);
+    setTimeout(() => checkUpdate(pushNotif), 3000);
+
+    return () => clearInterval(hbInterval);
   }, []);
 
   // Dışarı tıklayınca kapat
@@ -146,7 +171,7 @@ export default function AppLayout({ children }) {
         {bigIntro && (
           <BigIntroOverlay onDone={() => { setBigIntro(false); setBigMode(true); }} />
         )}
-        {bigMode && <BigModeScreen onExit={() => setBigMode(false)} />}
+        {bigMode && <BigModeScreen onExit={() => { setBigMode(false); setInitialChat(null); }} initialChat={initialChat} />}
       </AnimatePresence>
       <InAppNotifications />
 
@@ -160,7 +185,7 @@ export default function AppLayout({ children }) {
             </span>
           )}
           <span
-            onClick={() => { try { const s = new Audio('/sounds/c-one_onay.wav'); s.volume = 0.5; s.play().catch(()=>{}); } catch {} if (settings.c1_showIntro) setBigIntro(true); else setBigMode(true); }}
+            onClick={() => { try { const s = new Audio('/sounds/c-one_onay.wav'); s.volume = 0.5; s.play().catch(()=>{}); } catch {} if (settings.c1_showIntro && !isDev) setBigIntro(true); else setBigMode(true); }}
             style={{
               fontSize: 11, fontWeight: 900, color: "#f5a623",
               background: "rgba(245,166,35,.1)",
@@ -328,3 +353,4 @@ export default function AppLayout({ children }) {
     </div>
   );
 }
+
