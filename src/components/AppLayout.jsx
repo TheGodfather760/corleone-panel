@@ -3,7 +3,7 @@ import { useAuth } from "../lib/AuthContext";
 import { useSettings } from "../lib/SettingsContext";
 import { useNotif } from "../lib/NotifContext";
 import { useUpdate } from "../lib/UpdateContext";
-import { LayoutDashboard, Calendar, Download, Image, User, LogOut, Settings, ShieldCheck, Bell, Info, CheckCircle, AlertTriangle, AlertCircle, RefreshCw } from "lucide-react";
+import { LayoutDashboard, Calendar, Download, Image, User, LogOut, Settings, ShieldCheck, Bell, Info, CheckCircle, AlertTriangle, AlertCircle, ArrowDownToLine } from "lucide-react";
 import { getVersion } from "@tauri-apps/api/app";
 import { heartbeatApi } from "../lib/api";
 import { useEffect, useState, useRef } from "react";
@@ -224,9 +224,9 @@ export default function AppLayout({ children }) {
               title={updating ? `İndiriliyor... %${downloadProgress}` : `Sürüm ${updateInfo.version} mevcut — tıkla yükle`}
               style={{
                 position: "relative", width: 34, height: 34, borderRadius: 8,
-                background: "rgba(245,166,35,.12)",
-                border: "1px solid rgba(245,166,35,.35)",
-                color: "#f5a623", cursor: updating ? "wait" : "pointer",
+                background: "rgba(59,130,246,.12)",
+                border: "1px solid rgba(59,130,246,.35)",
+                color: "#3b82f6", cursor: updating ? "wait" : "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 transition: "all .2s", overflow: "hidden",
               }}
@@ -234,16 +234,16 @@ export default function AppLayout({ children }) {
               {updating && (
                 <div style={{
                   position: "absolute", bottom: 0, left: 0,
-                  height: 3, background: "#f5a623",
+                  height: 3, background: "#3b82f6",
                   width: `${downloadProgress}%`, transition: "width .3s ease",
                   borderRadius: "0 0 8px 8px",
                 }} />
               )}
-              <RefreshCw size={15} style={{ animation: updating ? "spin 1s linear infinite" : "none" }} />
+              <ArrowDownToLine size={15} style={{ animation: updating ? "spin 1s linear infinite" : "none" }} />
               {!updating && (
                 <span style={{
                   position: "absolute", top: -4, right: -4,
-                  background: "#f5a623", color: "#000", borderRadius: 20,
+                  background: "#3b82f6", color: "#fff", borderRadius: 20,
                   fontSize: 8, fontWeight: 900, padding: "1px 4px",
                   minWidth: 16, textAlign: "center", lineHeight: "14px",
                 }}>NEW</span>
@@ -251,7 +251,7 @@ export default function AppLayout({ children }) {
               {updating && downloadProgress > 0 && (
                 <span style={{
                   position: "absolute", top: -4, right: -4,
-                  background: "#f5a623", color: "#000", borderRadius: 20,
+                  background: "#3b82f6", color: "#fff", borderRadius: 20,
                   fontSize: 7, fontWeight: 900, padding: "1px 4px",
                   minWidth: 16, textAlign: "center", lineHeight: "14px",
                 }}>{downloadProgress}%</span>
@@ -353,5 +353,6 @@ export default function AppLayout({ children }) {
     </div>
   );
 }
+
 
 
