@@ -53,7 +53,7 @@ const ToggleBtn = ({ onClick, icon: Icon }) => (
   </button>
 );
 
-export default function EventReminderBanner({ event, onDismiss }) {
+export default function EventReminderBanner({ event, onDismiss, onClick }) {
   const [mini, setMini] = useState(false);
   const { d, h, m, s, done } = useCountdown(event.event_date);
   const accent = "#f5a623";
@@ -78,10 +78,11 @@ export default function EventReminderBanner({ event, onDismiss }) {
             transition={{ duration: 0.25 }}
           >
             {/* Kart */}
-            <div style={{
+            <div onClick={onClick} style={{
               borderRadius: "0 0 14px 14px", overflow: "hidden", position: "relative",
               boxShadow: "0 12px 40px rgba(0,0,0,.8)",
               animation: "borderGlow 2.5s ease-in-out infinite",
+              cursor: onClick ? "pointer" : "default",
             }}>
               {event.image_url && (
                 <div style={{
@@ -150,10 +151,11 @@ export default function EventReminderBanner({ event, onDismiss }) {
             transition={{ duration: 0.2 }}
           >
             {/* Mini kart */}
-            <div style={{
+            <div onClick={onClick} style={{
               borderRadius: "0 0 10px 10px", overflow: "hidden", position: "relative",
               boxShadow: "0 6px 20px rgba(0,0,0,.7)",
               animation: "borderGlow 2.5s ease-in-out infinite",
+              cursor: onClick ? "pointer" : "default",
             }}>
               {event.image_url && (
                 <div style={{

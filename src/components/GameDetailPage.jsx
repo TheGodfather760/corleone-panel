@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { invoke } from "@tauri-apps/api/core";
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { eventsApi, downloadsApi, steamApi } from "../lib/api";
+import { eventsApi, downloadsApi, steamApi, eventMediaApi } from "../lib/api";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { ChevronLeft, Play, Clock, Trophy, Package, Info, Activity, Image, Newspaper } from "lucide-react";
 
@@ -420,6 +420,395 @@ function TabGameInfo({ game, latestPatch }) {
   );
 }
 
+// Oyun sonrası screenshot yükleme modalı
+function PostGameModal({ game, launchTime, onClose }) {
+  const [shots, setShots] = useState([]);
+  const [selected, setSelected] = useState(new Set());
+  const [events, setEvents] = useState([]);
+  const [eventId, setEventId] = useState("");
+  const [caption, setCaption] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState({});   // { idx: pct }
+  const [done, setDone] = useState([]);            // başarılı idx'ler
+  const [errors, setErrors] = useState({});        // { idx: msg }
+
+  // Yeni screenshot'ları bul (launchTime'dan sonra değiştirilmiş)
+  useEffect(() => {
+    if (!game.screenshotDir) return;
+    invoke("get_game_screenshots", { gameDir: game.screenshotDir })
+      .then(r => {
+        const newShots = (r.files || []).filter(f => f.modified * 1000 >= launchTime);
+        setShots(newShots);
+        setSelected(new Set(newShots.map((_, i) => i))); // hepsini seçili başlat
+      })
+      .catch(() => {});
+  }, []);
+
+  // Aktif etkinlikleri çek
+  useEffect(() => {
+    eventsApi.list()
+      .then(r => {
+        const all = r.data.data || r.data || [];
+        const active = all.filter(e => e.status === "active" || e.status === "upcoming");
+        setEvents(active);
+        if (active.length === 1) setEventId(String(active[0].id));
+      })
+      .catch(() => {});
+  }, []);
+
+  const toggle = (i) => setSelected(prev => {
+    const next = new Set(prev);
+    next.has(i) ? next.delete(i) : next.add(i);
+    return next;
+  });
+
+  const handleUpload = async () => {
+    if (!eventId || selected.size === 0) return;
+    setUploading(true);
+    const toUpload = [...selected];
+
+    for (const idx of toUpload) {
+      const f = shots[idx];
+      try {
+        // Dosyayı Tauri fs ile oku → Blob oluştur
+        const { readFile } = await import("@tauri-apps/plugin-fs");
+        const bytes = await readFile(f.path);
+        const ext = f.name.split(".").pop().toLowerCase();
+        const mime = ext === "png" ? "image/png" : "image/jpeg";
+        const blob = new Blob([bytes], { type: mime });
+
+        const fd = new FormData();
+        fd.append("file", blob, f.name);
+        fd.append("event_id", eventId);
+        if (caption.trim()) fd.append("caption", caption.trim());
+
+        await eventMediaApi.upload(fd, (pct) =>
+          setProgress(p => ({ ...p, [idx]: pct }))
+        );
+        setDone(p => [...p, idx]);
+      } catch (e) {
+        setErrors(p => ({ ...p, [idx]: "Yükleme başarısız" }));
+      }
+    }
+    setUploading(false);
+  };
+
+  const allDone = done.length === selected.size && selected.size > 0 && !uploading;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      style={{
+        position: "fixed", inset: 0, zIndex: 500,
+        background: "rgba(0,0,0,.88)", backdropFilter: "blur(16px)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}
+      onClick={e => { if (e.target === e.currentTarget && !uploading) onClose(); }}
+    >
+      <motion.div
+        initial={{ scale: 0.92, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+        style={{
+          width: 560, maxHeight: "85vh",
+          background: "rgba(10,10,18,.99)",
+          border: `1px solid ${game.accent}30`,
+          borderRadius: 16, display: "flex", flexDirection: "column",
+          overflow: "hidden",
+          boxShadow: `0 0 60px ${game.accent}20`,
+        }}
+      >
+        {/* Başlık */}
+        <div style={{ padding: "18px 22px 14px", borderBottom: "1px solid rgba(255,255,255,.07)", flexShrink: 0 }}>
+          <div style={{ fontSize: 9, color: game.accent, letterSpacing: 2, marginBottom: 4 }}>OYUN SONU</div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: "#fff" }}>
+            {shots.length > 0 ? `${shots.length} Yeni Screenshot` : "Yeni Screenshot Yok"}
+          </div>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,.35)", marginTop: 3 }}>
+            {shots.length > 0
+              ? "Etkinliğe medya olarak eklemek istediklerini seç"
+              : "Bu oturumda screenshot çekilmedi."}
+          </div>
+        </div>
+
+        {shots.length === 0 ? (
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12, padding: 32 }}>
+            <div style={{ fontSize: 32, opacity: 0.3 }}>📷</div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,.3)" }}>Oyun sırasında F12 ile screenshot alabilirsin.</div>
+            <button onClick={onClose} style={{ marginTop: 8, padding: "8px 24px", borderRadius: 8, background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.12)", color: "rgba(255,255,255,.6)", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Kapat</button>
+          </div>
+        ) : (
+          <>
+            {/* Screenshot grid */}
+            <div style={{ flex: 1, overflowY: "auto", padding: "14px 22px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 16 }}>
+                {shots.map((f, i) => {
+                  const isSel = selected.has(i);
+                  const isDone = done.includes(i);
+                  const isErr = !!errors[i];
+                  const pct = progress[i] ?? 0;
+                  return (
+                    <div key={f.path}
+                      onClick={() => { if (!uploading && !isDone) toggle(i); }}
+                      style={{
+                        position: "relative", aspectRatio: "16/9", borderRadius: 8, overflow: "hidden",
+                        cursor: uploading || isDone ? "default" : "pointer",
+                        border: `2px solid ${
+                          isDone ? "#22c55e" : isErr ? "#e74c3c" : isSel ? game.accent : "rgba(255,255,255,.1)"
+                        }`,
+                        transition: "border-color .15s",
+                        boxShadow: isSel && !isDone ? `0 0 12px ${game.accent}40` : "none",
+                      }}
+                    >
+                      <img src={convertFileSrc(f.path)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      {/* Seçim overlay */}
+                      {!isDone && !isErr && (
+                        <div style={{
+                          position: "absolute", inset: 0,
+                          background: isSel ? "transparent" : "rgba(0,0,0,.55)",
+                          transition: "background .15s",
+                        }} />
+                      )}
+                      {/* Progress bar */}
+                      {uploading && isSel && !isDone && !isErr && (
+                        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: "rgba(0,0,0,.4)" }}>
+                          <div style={{ height: "100%", background: game.accent, width: `${pct}%`, transition: "width .2s" }} />
+                        </div>
+                      )}
+                      {/* Done badge */}
+                      {isDone && (
+                        <div style={{ position: "absolute", inset: 0, background: "rgba(34,197,94,.25)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#22c55e", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                          </div>
+                        </div>
+                      )}
+                      {/* Error badge */}
+                      {isErr && (
+                        <div style={{ position: "absolute", inset: 0, background: "rgba(231,76,60,.25)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <div style={{ fontSize: 9, color: "#e74c3c", fontWeight: 700, background: "rgba(0,0,0,.7)", padding: "2px 6px", borderRadius: 4 }}>HATA</div>
+                        </div>
+                      )}
+                      {/* Seçim işareti */}
+                      {isSel && !isDone && !isErr && (
+                        <div style={{ position: "absolute", top: 6, right: 6, width: 18, height: 18, borderRadius: "50%", background: game.accent, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Etkinlik seç */}
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 9, color: "rgba(255,255,255,.4)", letterSpacing: 1.5, marginBottom: 6, textTransform: "uppercase" }}>Etkinlik</div>
+                <select
+                  value={eventId}
+                  onChange={e => setEventId(e.target.value)}
+                  disabled={uploading}
+                  style={{
+                    width: "100%", padding: "9px 12px", borderRadius: 8,
+                    background: "rgba(255,255,255,.06)", border: `1px solid ${eventId ? game.accent + "50" : "rgba(255,255,255,.12)"}`,
+                    color: eventId ? "#fff" : "rgba(255,255,255,.4)",
+                    fontSize: 12, fontFamily: "inherit", outline: "none", cursor: "pointer",
+                  }}
+                >
+                  <option value="">Etkinlik seç...</option>
+                  {events.map(ev => (
+                    <option key={ev.id} value={ev.id} style={{ background: "#111" }}>{ev.title}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Açıklama */}
+              <div>
+                <div style={{ fontSize: 9, color: "rgba(255,255,255,.4)", letterSpacing: 1.5, marginBottom: 6, textTransform: "uppercase" }}>Açıklama (isteğe bağlı)</div>
+                <input
+                  value={caption}
+                  onChange={e => setCaption(e.target.value)}
+                  placeholder="Kısa bir açıklama..."
+                  disabled={uploading}
+                  style={{
+                    width: "100%", padding: "9px 12px", borderRadius: 8, boxSizing: "border-box",
+                    background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)",
+                    color: "#fff", fontSize: 12, fontFamily: "inherit", outline: "none",
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Alt butonlar */}
+            <div style={{ padding: "12px 22px", borderTop: "1px solid rgba(255,255,255,.07)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+              <span style={{ fontSize: 10, color: "rgba(255,255,255,.3)" }}>
+                {allDone ? `${done.length} görsel yüklendi ✓` : `${selected.size} seçili`}
+              </span>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  onClick={onClose}
+                  disabled={uploading}
+                  style={{ padding: "8px 18px", borderRadius: 8, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)", color: "rgba(255,255,255,.5)", fontSize: 11, fontWeight: 700, cursor: uploading ? "not-allowed" : "pointer" }}
+                >
+                  {allDone ? "Kapat" : "Atla"}
+                </button>
+                {!allDone && (
+                  <button
+                    onClick={handleUpload}
+                    disabled={uploading || !eventId || selected.size === 0}
+                    style={{
+                      padding: "8px 22px", borderRadius: 8, border: "none",
+                      background: (!eventId || selected.size === 0) ? "rgba(255,255,255,.1)" : game.accent,
+                      color: (!eventId || selected.size === 0) ? "rgba(255,255,255,.3)" : "#000",
+                      fontSize: 11, fontWeight: 800, cursor: (!eventId || selected.size === 0 || uploading) ? "not-allowed" : "pointer",
+                      display: "flex", alignItems: "center", gap: 6,
+                    }}
+                  >
+                    {uploading && <div style={{ width: 10, height: 10, borderRadius: "50%", border: "2px solid rgba(0,0,0,.3)", borderTopColor: "#000", animation: "spin 0.7s linear infinite" }} />}
+                    {uploading ? "Yükleniyor..." : "Etkinliğe Ekle"}
+                  </button>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// "launching" → 3sn → "inGame" → kullanıcı "Oyundan Çık" diyene kadar
+function LaunchingOverlay({ game, onDone }) {
+  const [phase, setPhase] = useState("launching"); // "launching" | "ready"
+
+  useEffect(() => {
+    const t = setTimeout(() => setPhase("ready"), 2800);
+    return () => clearTimeout(t);
+  }, []);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+      style={{
+        position: "fixed", inset: 0, zIndex: 400,
+        background: "rgba(0,0,0,.88)",
+        backdropFilter: "blur(18px)",
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 28,
+      }}
+    >
+      {/* Oyun kapağı */}
+      {game.cover && (
+        <motion.img
+          src={game.cover}
+          initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          style={{ width: 100, height: 140, objectFit: "cover", borderRadius: 12, border: `2px solid ${game.accent}60`, boxShadow: `0 0 40px ${game.accent}50` }}
+        />
+      )}
+
+      {/* Spinner + yazı */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+        <AnimatePresence mode="wait">
+          {phase === "launching" ? (
+            <motion.div key="spin" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              style={{ position: "relative", width: 52, height: 52 }}
+            >
+              {/* Dış halka */}
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1.2, ease: "linear", repeat: Infinity }}
+                style={{
+                  position: "absolute", inset: 0, borderRadius: "50%",
+                  border: `3px solid transparent`,
+                  borderTopColor: game.accent,
+                  borderRightColor: game.accent + "60",
+                }}
+              />
+              {/* İç halka — ters */}
+              <motion.div
+                animate={{ rotate: -360 }}
+                transition={{ duration: 1.8, ease: "linear", repeat: Infinity }}
+                style={{
+                  position: "absolute", inset: 8, borderRadius: "50%",
+                  border: `2px solid transparent`,
+                  borderTopColor: game.accent + "80",
+                }}
+              />
+              {/* Merkez nokta */}
+              <div style={{
+                position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <motion.div
+                  animate={{ scale: [1, 1.3, 1] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                  style={{ width: 8, height: 8, borderRadius: "50%", background: game.accent }}
+                />
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div key="check" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              style={{
+                width: 52, height: 52, borderRadius: "50%",
+                background: `${game.accent}20`, border: `2px solid ${game.accent}`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                boxShadow: `0 0 24px ${game.accent}60`,
+              }}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={game.accent} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence mode="wait">
+          {phase === "launching" ? (
+            <motion.div key="txt-launch" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+              style={{ textAlign: "center" }}
+            >
+              <div style={{ fontSize: 15, fontWeight: 800, color: "#fff", letterSpacing: 1 }}>{game.title}</div>
+              <motion.div
+                animate={{ opacity: [0.4, 1, 0.4] }}
+                transition={{ duration: 1.4, repeat: Infinity }}
+                style={{ fontSize: 11, color: game.accent, marginTop: 6, letterSpacing: 2, textTransform: "uppercase" }}
+              >
+                Oyun başlatılıyor...
+              </motion.div>
+            </motion.div>
+          ) : (
+            <motion.div key="txt-ready" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+              style={{ textAlign: "center" }}
+            >
+              <div style={{ fontSize: 15, fontWeight: 800, color: "#fff", letterSpacing: 1 }}>{game.title}</div>
+              <div style={{ fontSize: 11, color: game.accent, marginTop: 6, letterSpacing: 2, textTransform: "uppercase" }}>Steam'e gönderildi ✓</div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Kapat butonu — sadece ready aşamasında */}
+      <AnimatePresence>
+        {phase === "ready" && (
+          <motion.button
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            transition={{ delay: 0.2 }}
+            onClick={onDone}
+            style={{
+              padding: "9px 28px", borderRadius: 9,
+              background: game.accent, border: "none",
+              color: "#000", fontSize: 11, fontWeight: 800,
+              cursor: "pointer", letterSpacing: 1,
+              boxShadow: `0 4px 20px ${game.accent}50`,
+            }}
+          >
+            TAMAM
+          </motion.button>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
 export default function GameDetailPage({ game, onBack, onRemove }) {
   const [activeTab, setActiveTab] = useState(0);
   // section: "tabs" | "shots" | "news"
@@ -429,6 +818,10 @@ export default function GameDetailPage({ game, onBack, onRemove }) {
   const [playtime, setPlaytime] = useState(null);
   const [gameVersion, setGameVersion] = useState(null);
   const [latestPatch, setLatestPatch] = useState(null);
+  const [launching, setLaunching] = useState(false);
+  const [inGame, setInGame] = useState(false);
+  const [launchTime, setLaunchTime] = useState(null);
+  const [postGame, setPostGame] = useState(false);
   const scrollRef = useRef(null);
 
   // ref'ler — handler'da stale closure olmadan güncel değer okumak için
@@ -582,6 +975,27 @@ export default function GameDetailPage({ game, onBack, onRemove }) {
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
       style={{ position: "absolute", inset: 0, zIndex: 20, background: "#0a0a0f", display: "flex", flexDirection: "column", overflow: "hidden", fontFamily: "'LemonMilk', 'Segoe UI', sans-serif" }}
     >
+      {/* PostGame screenshot modal */}
+      <AnimatePresence>
+        {postGame && (
+          <PostGameModal
+            game={game}
+            launchTime={launchTime}
+            onClose={() => setPostGame(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Launching overlay */}
+      <AnimatePresence>
+        {launching && (
+          <LaunchingOverlay
+            game={game}
+            onDone={() => { setLaunching(false); setInGame(true); }}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Banner */}
       <div style={{ position: "relative", height: 200, flexShrink: 0, overflow: "hidden" }}>
         {bannerUrl ? (
@@ -612,9 +1026,64 @@ export default function GameDetailPage({ game, onBack, onRemove }) {
 
       {/* Aksiyon butonları */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 24px", borderBottom: "1px solid rgba(255,255,255,.06)", flexShrink: 0 }}>
-        <button style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 24px", borderRadius: 9, background: game.accent, border: "none", color: "#000", fontSize: 12, fontWeight: 800, cursor: "pointer", boxShadow: `0 4px 20px ${game.accent}50` }}>
-          <Play size={14} fill="#000" /> OYNA
+        <button
+          onClick={() => {
+            if (game.steamAppId) {
+              openUrl(`steam://rungameid/${game.steamAppId}`).catch(() => {});
+              setLaunchTime(Date.now());
+              setLaunching(true);
+              setInGame(false);
+            }
+          }}
+          style={{
+            display: "flex", alignItems: "center", gap: 8,
+            padding: "10px 24px", borderRadius: 9, border: "none",
+            background: inGame ? "#22c55e" : game.accent,
+            color: "#000", fontSize: 12, fontWeight: 800, cursor: "pointer",
+            boxShadow: inGame ? "0 4px 20px rgba(34,197,94,.5)" : `0 4px 20px ${game.accent}50`,
+            transition: "background .3s, box-shadow .3s",
+            position: "relative", overflow: "hidden",
+          }}
+        >
+          {inGame && (
+            <motion.div
+              animate={{ opacity: [0.15, 0.35, 0.15] }}
+              transition={{ duration: 1.6, repeat: Infinity }}
+              style={{
+                position: "absolute", inset: 0,
+                background: "rgba(255,255,255,.25)",
+                borderRadius: 9,
+              }}
+            />
+          )}
+          {inGame ? (
+            <>
+              <motion.div
+                animate={{ scale: [1, 1.4, 1] }}
+                transition={{ duration: 1.2, repeat: Infinity }}
+                style={{ width: 8, height: 8, borderRadius: "50%", background: "#000", flexShrink: 0 }}
+              />
+              OYUNDA
+            </>
+          ) : (
+            <><Play size={14} fill="#000" /> OYNA</>
+          )}
         </button>
+        {inGame && (
+          <button
+            onClick={() => { setInGame(false); if (game.screenshotDir) setPostGame(true); }}
+            style={{
+              padding: "10px 16px", borderRadius: 9,
+              background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)",
+              color: "rgba(255,255,255,.5)", fontSize: 10, fontWeight: 700,
+              cursor: "pointer", transition: "all .2s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(231,76,60,.4)"; e.currentTarget.style.color = "#e74c3c"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,.12)"; e.currentTarget.style.color = "rgba(255,255,255,.5)"; }}
+          >
+            Oyundan Çıktım
+          </button>
+        )}
         <div style={{ display: "flex", gap: 16, marginLeft: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <Clock size={12} color="rgba(255,255,255,.4)" />

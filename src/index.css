@@ -404,19 +404,15 @@ body {
 
 /* ── PAGE HEADER ── */
 .page-header {
-  margin-bottom: 24px;
+  display: none;
 }
 
 .page-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 4px;
+  display: none;
 }
 
 .page-subtitle {
-  font-size: 13px;
-  color: var(--text-muted);
+  display: none;
 }
 
 /* ── BUTTONS ── */

@@ -1,7 +1,7 @@
 {
   "name": "corleone-panel",
   "private": true,
-  "version": "0.5.2",
+  "version": "0.7.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -27,6 +27,7 @@
     "lucide-react": "^1.41.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-icons": "^5.7.0",
     "react-router-dom": "^7.18.3",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.3.3"

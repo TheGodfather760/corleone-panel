@@ -32,7 +32,7 @@ function formatDateShort(d) {
   return new Date(d).toLocaleDateString("tr-TR", { day: "2-digit", month: "short" });
 }
 
-function EventDetail({ event, onClose, accent }) {
+export function EventDetail({ event, onClose, accent }) {
   const [attending, setAttending] = useState(event.my_status || "none");
   const [loading, setLoading] = useState(false);
   const [routeExpanded, setRouteExpanded] = useState(false);

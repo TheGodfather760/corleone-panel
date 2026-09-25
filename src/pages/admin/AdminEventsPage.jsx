@@ -9,7 +9,7 @@ const STATUS_LABELS = { upcoming: "Yaklaşan", active: "Aktif", past: "Tamamland
 const ATT_COLORS    = { attending: "#2ecc71", maybe: "#f5a623", not_attending: "#e74c3c" };
 const ATT_LABELS    = { attending: "Katılıyor", maybe: "Belki", not_attending: "Katılmıyor" };
 
-const EMPTY = { title_tr: "", description_tr: "", event_date: "", game: "ETS2", route: "", truckers_url: "", status: "upcoming", is_private: "0" };
+const EMPTY = { title_tr: "", description_tr: "", event_date: "", game: "ETS2", route: "", truckers_url: "", status: "upcoming", is_private: "0", is_active: "1" };
 
 const inputStyle = {
   background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8,
@@ -86,6 +86,17 @@ function EventForm({ initial, onSave, onCancel, saving }) {
               border: `1px solid ${form.is_private === "1" ? "#f5a623" : "rgba(255,255,255,.15)"}`,
               cursor: "pointer", position: "relative", transition: "all .2s", flexShrink: 0 }}>
             <div style={{ position: "absolute", top: 2, left: form.is_private === "1" ? 17 : 2, width: 14, height: 14,
+              borderRadius: "50%", background: "#fff", transition: "left .2s" }} />
+          </div>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <Label>Aktif (Yayında)</Label>
+          <div onClick={() => set("is_active", form.is_active === "1" ? "0" : "1")}
+            style={{ width: 36, height: 20, borderRadius: 10, background: form.is_active === "1" ? "#2ecc71" : "rgba(255,255,255,.1)",
+              border: `1px solid ${form.is_active === "1" ? "#2ecc71" : "rgba(255,255,255,.15)"}`,
+              cursor: "pointer", position: "relative", transition: "all .2s", flexShrink: 0 }}>
+            <div style={{ position: "absolute", top: 2, left: form.is_active === "1" ? 17 : 2, width: 14, height: 14,
               borderRadius: "50%", background: "#fff", transition: "left .2s" }} />
           </div>
         </div>
@@ -301,7 +312,8 @@ export default function AdminEventsPage() {
   const [editItem, setEditItem] = useState(null);
   const [saving, setSaving]     = useState(false);
   const [deleting, setDeleting] = useState(null);
-  const [expanded, setExpanded] = useState(null); // "attendees" | "media" | null, per id
+  const [expanded, setExpanded] = useState(null); // event id
+  const [expandedTab, setExpandedTab] = useState("info"); // "info" | "attendees" | "media"
   const [statusFilter, setStatusFilter] = useState("all");
 
   const load = () => {
@@ -330,8 +342,9 @@ export default function AdminEventsPage() {
     setDeleting(null);
   };
 
-  const toggleExpand = (id, type) => {
-    setExpanded(prev => (prev?.id === id && prev?.type === type) ? null : { id, type });
+  const toggleExpand = (id) => {
+    if (expanded === id) { setExpanded(null); }
+    else { setExpanded(id); setExpandedTab("info"); }
   };
 
   const filtered = events.filter(e => statusFilter === "all" || e.status === statusFilter);
@@ -379,14 +392,19 @@ export default function AdminEventsPage() {
             <div key={ev.id}>
               {editItem?.id === ev.id ? (
                 <EventForm
-                  initial={{ ...ev, event_date: ev.event_date?.slice(0, 16) || "", is_private: String(ev.is_private || 0) }}
+                  initial={{ ...ev, event_date: ev.event_date?.slice(0, 16) || "", is_private: String(ev.is_private || 0), is_active: String(ev.is_active ?? 1) }}
                   onSave={handleSave}
                   onCancel={() => setEditItem(null)}
                   saving={saving}
                 />
               ) : (
-                <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px" }}>
+                <div style={{ background: "var(--surface)", border: `1px solid ${expanded === ev.id ? "rgba(245,166,35,.3)" : "var(--border)"}`, borderRadius: 12, overflow: "hidden", transition: "border-color .2s" }}>
+                  <div
+                    onClick={() => toggleExpand(ev.id)}
+                    style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", cursor: "pointer" }}
+                    onMouseEnter={e => { if (expanded !== ev.id) e.currentTarget.style.background = "rgba(255,255,255,.02)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = ""; }}
+                  >
                     {/* Kapak */}
                     {ev.image_url ? (
                       <img src={ev.image_url} alt="" style={{ width: 56, height: 56, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
@@ -406,6 +424,7 @@ export default function AdminEventsPage() {
                         </span>
                         {ev.game && <span style={{ fontSize: 10, color: "#888", background: "rgba(255,255,255,.06)", padding: "1px 7px", borderRadius: 20 }}>{ev.game}</span>}
                         {ev.is_private ? <span style={{ fontSize: 10, color: "#9b59b6", background: "rgba(155,89,182,.1)", padding: "1px 7px", borderRadius: 20 }}>Özel</span> : null}
+                        {!ev.is_active ? <span style={{ fontSize: 10, color: "#e74c3c", background: "rgba(231,76,60,.1)", padding: "1px 7px", borderRadius: 20 }}>Pasif</span> : null}
                       </div>
                       <div style={{ fontSize: 11, color: "#666", display: "flex", gap: 10, flexWrap: "wrap" }}>
                         <span>{ev.event_date?.slice(0, 16).replace("T", " ")}</span>
@@ -415,16 +434,16 @@ export default function AdminEventsPage() {
                       </div>
                     </div>
 
-                    <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                      <button onClick={() => toggleExpand(ev.id, "attendees")} title="Katılımcılar"
+                    <div style={{ display: "flex", gap: 6, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                      <button onClick={() => { setExpanded(ev.id); setExpandedTab("attendees"); }} title="Katılımcılar"
                         style={{ padding: "5px 8px", borderRadius: 7, border: "1px solid rgba(39,174,96,.2)",
-                          background: expanded?.id === ev.id && expanded?.type === "attendees" ? "rgba(39,174,96,.15)" : "rgba(39,174,96,.06)",
+                          background: expanded === ev.id && expandedTab === "attendees" ? "rgba(39,174,96,.15)" : "rgba(39,174,96,.06)",
                           color: "#2ecc71", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 11 }}>
                         <Users size={12} />{ev.attending_count || 0}
                       </button>
-                      <button onClick={() => toggleExpand(ev.id, "media")} title="Medya"
+                      <button onClick={() => { setExpanded(ev.id); setExpandedTab("media"); }} title="Medya"
                         style={{ padding: "5px 8px", borderRadius: 7, border: "1px solid rgba(52,152,219,.2)",
-                          background: expanded?.id === ev.id && expanded?.type === "media" ? "rgba(52,152,219,.15)" : "rgba(52,152,219,.06)",
+                          background: expanded === ev.id && expandedTab === "media" ? "rgba(52,152,219,.15)" : "rgba(52,152,219,.06)",
                           color: "#3498db", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 11 }}>
                         <Image size={12} />{ev.media_count || 0}
                       </button>
@@ -440,20 +459,84 @@ export default function AdminEventsPage() {
                           display: "flex", alignItems: "center", opacity: deleting === ev.id ? 0.5 : 1 }}>
                         <Trash2 size={13} />
                       </button>
+                      <div style={{ width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", color: "#555" }}>
+                        {expanded === ev.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      </div>
                     </div>
                   </div>
 
-                  {/* Katılımcılar paneli */}
-                  {expanded?.id === ev.id && expanded?.type === "attendees" && (
-                    <div style={{ borderTop: "1px solid var(--border)", padding: "0 16px 16px" }}>
-                      <AttendeesPanel eventId={ev.id} onClose={() => setExpanded(null)} />
-                    </div>
-                  )}
+                  {/* Detay paneli */}
+                  {expanded === ev.id && (
+                    <div style={{ borderTop: "1px solid rgba(245,166,35,.2)", background: "rgba(245,166,35,.03)" }}>
 
-                  {/* Medya paneli */}
-                  {expanded?.id === ev.id && expanded?.type === "media" && (
-                    <div style={{ borderTop: "1px solid var(--border)", padding: "0 16px 16px" }}>
-                      <MediaPanel eventId={ev.id} onClose={() => setExpanded(null)} />
+                      {/* Sekme bar */}
+                      <div style={{ display: "flex", gap: 2, padding: "10px 16px 0", borderBottom: "1px solid var(--border)" }}>
+                        {[
+                          { key: "info",       label: "Bilgiler" },
+                          { key: "attendees",  label: `Katılımcılar (${ev.attending_count || 0})` },
+                          { key: "media",      label: `Medya (${ev.media_count || 0})` },
+                        ].map(t => (
+                          <button key={t.key} onClick={e => { e.stopPropagation(); setExpandedTab(t.key); }}
+                            style={{ padding: "7px 14px", border: "none", borderRadius: "8px 8px 0 0", fontSize: 12, fontWeight: 700, cursor: "pointer",
+                              background: expandedTab === t.key ? "var(--surface)" : "transparent",
+                              color: expandedTab === t.key ? "#f5a623" : "#666",
+                              borderBottom: expandedTab === t.key ? "2px solid #f5a623" : "2px solid transparent",
+                            }}>
+                            {t.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Bilgiler */}
+                      {expandedTab === "info" && (
+                        <div style={{ display: "grid", gridTemplateColumns: ev.image_url ? "200px 1fr" : "1fr", gap: 20, padding: 16 }} onClick={e => e.stopPropagation()}>
+                          {ev.image_url && (
+                            <img src={ev.image_url} alt="" style={{ width: "100%", borderRadius: 10, objectFit: "cover", maxHeight: 160 }} />
+                          )}
+                          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                            {ev.description_tr && (
+                              <div>
+                                <div style={{ fontSize: 10, fontWeight: 700, color: "#666", textTransform: "uppercase", letterSpacing: .5, marginBottom: 4 }}>Açıklama</div>
+                                <div style={{ fontSize: 13, color: "#ccc", lineHeight: 1.6 }}>{ev.description_tr}</div>
+                              </div>
+                            )}
+                            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                              {[
+                                ["Tarih",    ev.event_date?.slice(0,16).replace("T"," ")],
+                                ["Oyun",     ev.game],
+                                ["Rota",     ev.route],
+                                ["Durum",    STATUS_LABELS[ev.status]],
+                                ["Katılımcı", ev.attending_count || 0],
+                                ["Medya",    ev.media_count || 0],
+                                ev.truckers_url ? ["TruckersMP", ev.truckers_url] : null,
+                              ].filter(Boolean).map(([label, val]) => (
+                                <div key={label} style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 12px", minWidth: 80 }}>
+                                  <div style={{ fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: .4, marginBottom: 2 }}>{label}</div>
+                                  <div style={{ fontSize: 12, fontWeight: 700, color: "#ddd", wordBreak: "break-all" }}>
+                                    {label === "TruckersMP"
+                                      ? <a href={String(val)} target="_blank" rel="noreferrer" style={{ color: "#f5a623", textDecoration: "none" }}>Linke Git ↗</a>
+                                      : String(val ?? "-")}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Katılımcılar */}
+                      {expandedTab === "attendees" && (
+                        <div style={{ padding: "0 16px 16px" }} onClick={e => e.stopPropagation()}>
+                          <AttendeesPanel eventId={ev.id} onClose={() => setExpanded(null)} />
+                        </div>
+                      )}
+
+                      {/* Medya */}
+                      {expandedTab === "media" && (
+                        <div style={{ padding: "0 16px 16px" }} onClick={e => e.stopPropagation()}>
+                          <MediaPanel eventId={ev.id} onClose={() => setExpanded(null)} />
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

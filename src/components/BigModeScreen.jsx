@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "../lib/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Globe, X, ChevronLeft, ChevronRight, Newspaper, Calendar, Download, Image, LogOut, Users, Settings, Plus, Check, Trash2 } from "lucide-react";
+import { Search, Globe, X, ChevronLeft, ChevronRight, Newspaper, Calendar, Download, Image, LogOut, Users, Settings, Plus, Check, Trash2, Truck } from "lucide-react";
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { invoke } from "@tauri-apps/api/core";
 import { convertFileSrc } from "@tauri-apps/api/core";
@@ -9,6 +10,7 @@ import { eventsApi, downloadsApi, steamApi } from "../lib/api";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useSettings } from "../lib/SettingsContext";
 import GameDetailPage from "./GameDetailPage";
+import { EventDetail } from "./COneEventsScreen";
 import COneSettingsScreen from "./COneSettingsScreen";
 import COneMediaScreen from "./COneMediaScreen";
 import COneEventsScreen from "./COneEventsScreen";
@@ -16,6 +18,9 @@ import COneDownloadsScreen from "./COneDownloadsScreen";
 import COneNewsScreen from "./COneNewsScreen";
 import COneChatScreen from "./COneChatScreen";
 import EventReminderBanner from "./EventReminderBanner";
+import COneProfileScreen from "./COneProfileScreen";
+import COnePromodsScreen from "./COnePromodsScreen";
+import COneLogisticsScreen from "./COneLogisticsScreen";
 
 // Bilinen oyunlar kataloğu (Steam'den çekilen listeye ek meta)
 const KNOWN_GAMES = {
@@ -270,10 +275,92 @@ function Clock() {
   return <span style={{ fontSize: 15, fontWeight: 700, color: "#fff", letterSpacing: 1 }}>{time}</span>;
 }
 
-function SearchOverlay({ onClose }) {
+function SearchOverlay({ onClose, games, onSelectGame, onOpenEvents, onOpenDownloads, onOpenSettings, onOpenNews }) {
   const [q, setQ] = useState("");
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
   const ref = useRef(null);
   useEffect(() => { ref.current?.focus(); }, []);
+
+  // Statik kategoriler — ayarlar
+  const SETTINGS_ITEMS = [
+    { label: "Müzik Ses Seviyesi", sub: "Ayarlar › Müzik" },
+    { label: "Ses Efektleri", sub: "Ayarlar › Genel" },
+    { label: "Font Seçimi", sub: "Ayarlar › Görünüm" },
+    { label: "Yazı Boyutu", sub: "Ayarlar › Görünüm" },
+    { label: "Müzik Aç/Kapat", sub: "Ayarlar › Müzik" },
+  ];
+
+  useEffect(() => {
+    const trimmed = q.trim().toLowerCase();
+    if (!trimmed) { setResults([]); return; }
+
+    const found = [];
+
+    // Oyunlar
+    games.forEach(g => {
+      if (g.title.toLowerCase().includes(trimmed)) {
+        found.push({ type: "game", icon: "🎮", label: g.title, sub: "Oyun Kütüphanesi", accent: g.accent, data: g });
+      }
+    });
+
+    // Ayarlar
+    SETTINGS_ITEMS.forEach(s => {
+      if (s.label.toLowerCase().includes(trimmed)) {
+        found.push({ type: "settings", icon: "⚙️", label: s.label, sub: s.sub, data: s });
+      }
+    });
+
+    // API aramaları — etkinlik + indirme
+    setLoading(true);
+    Promise.allSettled([
+      eventsApi.list(),
+      downloadsApi.list(),
+    ]).then(([evRes, dlRes]) => {
+      if (evRes.status === "fulfilled") {
+        const all = evRes.value.data.data || evRes.value.data || [];
+        all.forEach(e => {
+          if (e.title?.toLowerCase().includes(trimmed)) {
+            found.push({ type: "event", icon: "📅", label: e.title, sub: "Etkinlikler", accent: "#2ecc71", data: e });
+          }
+        });
+      }
+      if (dlRes.status === "fulfilled") {
+        const all = dlRes.value.data.data || [];
+        all.forEach(d => {
+          if (d.title?.toLowerCase().includes(trimmed)) {
+            found.push({ type: "download", icon: "⬇️", label: d.title, sub: "İndirmeler", accent: "#3b82f6", data: d });
+          }
+        });
+      }
+      setResults([...found]);
+      setLoading(false);
+    });
+
+    // Statik sonuçları hemen göster, API gelince güncelle
+    setResults([...found]);
+  }, [q, games]);
+
+  const handleSelect = (item) => {
+    playSelectSound();
+    if (item.type === "game") {
+      onSelectGame(item.data);
+    } else if (item.type === "event") {
+      onOpenEvents();
+    } else if (item.type === "download") {
+      onOpenDownloads();
+    } else if (item.type === "settings") {
+      onOpenSettings();
+    } else if (item.type === "news") {
+      onOpenNews();
+    }
+    onClose();
+  };
+
+  const CATEGORY_COLORS = {
+    game: "#f5a623", event: "#2ecc71", download: "#3b82f6", settings: "#7c3aed", news: "#e74c3c",
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -286,20 +373,54 @@ function SearchOverlay({ onClose }) {
         onClick={e => e.stopPropagation()}
         style={{ width: "var(--c1-search-w)", background: "rgba(20,20,20,.95)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 14, overflow: "hidden" }}
       >
+        {/* Input */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", borderBottom: "1px solid rgba(255,255,255,.08)" }}>
           <Search size={16} color="#888" />
           <input
             ref={ref}
             value={q}
             onChange={e => setQ(e.target.value)}
-            placeholder="Ara..."
+            placeholder="Oyun, etkinlik, indirme, ayar ara…"
             style={{ flex: 1, background: "none", border: "none", outline: "none", color: "#fff", fontSize: 15, fontFamily: "inherit" }}
           />
+          {loading && <div style={{ width: 14, height: 14, borderRadius: "50%", border: "2px solid rgba(255,255,255,.15)", borderTopColor: "#f5a623", animation: "spin 0.8s linear infinite", flexShrink: 0 }} />}
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#555", cursor: "pointer" }}><X size={14} /></button>
         </div>
-        <div style={{ padding: "12px 18px", fontSize: 12, color: "#555" }}>
-          {q ? `"${q}" için sonuç aranıyor...` : "Oyun, etkinlik veya içerik ara"}
-        </div>
+
+        {/* Sonuçlar */}
+        {q.trim() === "" ? (
+          <div style={{ padding: "14px 18px", fontSize: 12, color: "#444", display: "flex", gap: 16, flexWrap: "wrap" }}>
+            {["🎮 Oyunlar", "📅 Etkinlikler", "⬇️ İndirmeler", "⚙️ Ayarlar"].map(c => (
+              <span key={c} style={{ fontSize: 11, color: "rgba(255,255,255,.25)" }}>{c}</span>
+            ))}
+          </div>
+        ) : results.length === 0 && !loading ? (
+          <div style={{ padding: "14px 18px", fontSize: 12, color: "#555" }}>"{q}" için sonuç bulunamadı.</div>
+        ) : (
+          <div style={{ maxHeight: 380, overflowY: "auto" }}>
+            {results.map((item, i) => (
+              <div key={`${item.type}-${i}`}
+                onClick={() => handleSelect(item)}
+                style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 18px", cursor: "pointer", borderBottom: "1px solid rgba(255,255,255,.04)", transition: "background .15s" }}
+                onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,.06)"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+              >
+                {/* Tip ikonu */}
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: `${CATEGORY_COLORS[item.type] || "#888"}18`, border: `1px solid ${CATEGORY_COLORS[item.type] || "#888"}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>
+                  {item.type === "game" && item.data.cover
+                    ? <img src={item.data.cover} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 7 }} onError={e => e.currentTarget.style.display="none"} />
+                    : item.icon
+                  }
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</div>
+                  <div style={{ fontSize: 10, color: `${CATEGORY_COLORS[item.type] || "#888"}cc`, marginTop: 2 }}>{item.sub}</div>
+                </div>
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="rgba(255,255,255,.25)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+              </div>
+            ))}
+          </div>
+        )}
       </motion.div>
     </motion.div>
   );
@@ -802,9 +923,15 @@ export default function BigModeScreen({ onExit, initialChat = null }) {
   const [eventsOpen, setEventsOpen] = useState(false);
   const [downloadsOpen, setDownloadsOpen] = useState(false);
   const [newsOpen, setNewsOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [promodsOpen, setPromodsOpen] = useState(false);
+  const [logisticsOpen, setLogisticsOpen] = useState(false);
+  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
+  const avatarMenuRef = useRef(null);
   const [chatOpen, setChatOpen] = useState(!!initialChat);
   const [chatInitUser, setChatInitUser] = useState(initialChat);
   const [reminderEvent, setReminderEvent] = useState(null);
+  const [reminderDetailOpen, setReminderDetailOpen] = useState(false);
   const [exitConfirm, setExitConfirm] = useState(false);
   const [direction, setDirection] = useState(1);
   const [focusZone, setFocusZone] = useState("cards");
@@ -834,6 +961,22 @@ export default function BigModeScreen({ onExit, initialChat = null }) {
     check();
     const t = setInterval(check, 60 * 1000); // her 1 dakikada bir
     return () => clearInterval(t);
+  }, []);
+
+  // Avatar menü dışına tıklayınca kapat
+  const avatarMenuOpenRef = useRef(false);
+  useEffect(() => { avatarMenuOpenRef.current = avatarMenuOpen; }, [avatarMenuOpen]);
+  useEffect(() => {
+    const h = (e) => {
+      if (!avatarMenuOpenRef.current) return;
+      const menu = document.getElementById('avatar-dropdown-portal');
+      const btn  = avatarMenuRef.current;
+      if (menu && menu.contains(e.target)) return;
+      if (btn  && btn.contains(e.target))  return;
+      setAvatarMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", h);
+    return () => document.removeEventListener("pointerdown", h);
   }, []);
 
   // Ayarlardan müzik durumunu başlat
@@ -936,6 +1079,8 @@ export default function BigModeScreen({ onExit, initialChat = null }) {
         if (eventsOpen) { setEventsOpen(false); return; }
         if (downloadsOpen) { setDownloadsOpen(false); return; }
         if (newsOpen) { setNewsOpen(false); return; }
+        if (logisticsOpen) { setLogisticsOpen(false); return; }
+        if (promodsOpen) { setPromodsOpen(false); return; }
         if (chatOpen) { setChatOpen(false); return; }
         setExitConfirm(true); return;
       }
@@ -1129,6 +1274,39 @@ export default function BigModeScreen({ onExit, initialChat = null }) {
         )}
       </AnimatePresence>
 
+      {/* Lojistik ekranı */}
+      <AnimatePresence>
+        {logisticsOpen && (
+          <COneLogisticsScreen
+            onBack={() => { playBackSound(); setLogisticsOpen(false); }}
+            accent={game?.accent || "#f5a623"}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ProMods ekranı */}
+      <AnimatePresence>
+        {promodsOpen && (
+          <COnePromodsScreen
+            onBack={() => { playBackSound(); setPromodsOpen(false); }}
+            accent={game?.accent || "#f5a623"}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Profil ekranı */}
+      <AnimatePresence>
+        {profileOpen && (
+          <COneProfileScreen
+            onBack={() => { playBackSound(); setProfileOpen(false); }}
+            bgMusicRef={bgMusicRef}
+            isPlaying={isPlaying}
+            onTogglePlay={togglePlay}
+            onVolumeChange={(v) => { if (bgMusicRef.current) bgMusicRef.current.volume = v / 100; }}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Ayarlar ekranı */}
       <AnimatePresence>
         {settingsOpen && (
@@ -1185,8 +1363,20 @@ export default function BigModeScreen({ onExit, initialChat = null }) {
         <EventReminderBanner
           event={reminderEvent}
           onDismiss={() => setReminderEvent(null)}
+          onClick={() => setReminderDetailOpen(true)}
         />
       )}
+
+      {/* Etkinlik detay modal — banner'dan açılan */}
+      <AnimatePresence>
+        {reminderDetailOpen && reminderEvent && (
+          <EventDetail
+            event={reminderEvent}
+            accent={game?.accent || "#f5a623"}
+            onClose={() => setReminderDetailOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Animasyonlu arka plan */}
       <AnimatePresence mode="sync">
@@ -1197,7 +1387,18 @@ export default function BigModeScreen({ onExit, initialChat = null }) {
 
       {/* Arama overlay */}
       <AnimatePresence>
-        {searchOpen && <SearchOverlay onClose={() => setSearchOpen(false)} />}
+        {searchOpen && <SearchOverlay
+          onClose={() => setSearchOpen(false)}
+          games={games}
+          onSelectGame={(g) => {
+            const idx = games.findIndex(x => x.id === g.id);
+            if (idx !== -1) { setDirection(idx > active ? 1 : -1); setActive(idx); }
+          }}
+          onOpenEvents={() => setEventsOpen(true)}
+          onOpenDownloads={() => setDownloadsOpen(true)}
+          onOpenSettings={() => setSettingsOpen(true)}
+          onOpenNews={() => setNewsOpen(true)}
+        />}
       </AnimatePresence>
 
       {/* ── C-ONE MENÜ SLIDE PANEL ── */}
@@ -1211,8 +1412,7 @@ export default function BigModeScreen({ onExit, initialChat = null }) {
               onClick={() => { playBackSound(); setMenuOpen(false); }}
               style={{
                 position: "absolute", inset: 0, zIndex: 50,
-                background: "rgba(0,0,0,.55)",
-                backdropFilter: "blur(8px)",
+                background: "rgba(0,0,0,.65)",
               }}
             />
             {/* Slide panel */}
@@ -1222,9 +1422,8 @@ export default function BigModeScreen({ onExit, initialChat = null }) {
               style={{
                 position: "absolute", left: 0, top: 0, bottom: 0, zIndex: 51,
                 width: "var(--c1-menu-w)",
-                background: "rgba(8,8,15,.96)",
+                background: "rgba(8,8,15,.99)",
                 borderRight: "1px solid rgba(245,166,35,.15)",
-                backdropFilter: "blur(20px)",
                 display: "flex", flexDirection: "column", justifyContent: "center",
                 boxShadow: "8px 0 40px rgba(0,0,0,.6)",
               }}
@@ -1264,6 +1463,8 @@ export default function BigModeScreen({ onExit, initialChat = null }) {
                       if (label === "İNDİRMELER")         setDownloadsOpen(true);
                       if (label === "YENİLİKLER")         setNewsOpen(true);
                       if (label === "ARKADAŞLAR & SOHBET") setChatOpen(true);
+                      if (label === "LOJİSTİK")            setLogisticsOpen(true);
+                      if (label === "PROMODS")            setPromodsOpen(true);
                     }}
                       style={{
                         display: "flex", alignItems: "center", gap: 16,
@@ -1470,7 +1671,7 @@ export default function BigModeScreen({ onExit, initialChat = null }) {
           <Search size={18} />
         </button>
         {/* Website */}
-        <button onClick={() => openUrl("https://corleoneteam.com.tr").catch(() => {})} style={{ background: "none", border: "none", color: "rgba(255,255,255,.6)", cursor: "pointer", display: "flex", alignItems: "center", transition: "color .2s" }}
+        <button onClick={() => { playSelectSound(); openUrl("https://corleoneteam.com.tr").catch(() => {}); }} style={{ background: "none", border: "none", color: "rgba(255,255,255,.6)", cursor: "pointer", display: "flex", alignItems: "center", transition: "color .2s" }}
           onMouseEnter={e => e.currentTarget.style.color = "#fff"}
           onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,.6)"}
         >
@@ -1478,11 +1679,53 @@ export default function BigModeScreen({ onExit, initialChat = null }) {
         </button>
         {/* Saat */}
         <Clock />
-        {/* Avatar */}
-        <img
-          src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.username}&background=333&color=f5a623`}
-          style={{ width: 34, height: 34, borderRadius: "50%", border: "2px solid rgba(255,255,255,.2)", objectFit: "cover", cursor: "pointer" }}
-        />
+        {/* Avatar + dropdown */}
+        <div ref={avatarMenuRef} style={{ position: "relative" }} onPointerDown={e => e.stopPropagation()}>
+          <img
+            src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.username}&background=333&color=f5a623`}
+            onPointerDown={e => { e.stopPropagation(); setAvatarMenuOpen(o => !o); }}
+            style={{ width: 34, height: 34, borderRadius: "50%", border: `2px solid ${avatarMenuOpen ? (game?.accent || "#f5a623") : "rgba(255,255,255,.2)"}`, objectFit: "cover", cursor: "pointer", transition: "border-color .2s", boxShadow: avatarMenuOpen ? `0 0 12px ${game?.accent || "#f5a623"}60` : "none" }}
+          />
+          {avatarMenuOpen && createPortal(
+            <div
+              id="avatar-dropdown-portal"
+              onPointerDown={e => e.stopPropagation()}
+              style={{ position: "fixed", top: 54, right: 28, zIndex: 99999, width: 210, background: "rgba(10,10,18,.98)", border: `1px solid rgba(245,166,35,.3)`, borderRadius: 12, overflow: "hidden", boxShadow: "0 8px 40px rgba(0,0,0,.9)" }}
+            >
+              {/* Kullanıcı özeti */}
+              <div style={{ padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,.07)", display: "flex", alignItems: "center", gap: 10 }}>
+                <img src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.username}&background=333&color=f5a623`}
+                  style={{ width: 36, height: 36, borderRadius: "50%", border: "2px solid rgba(245,166,35,.5)", objectFit: "cover", flexShrink: 0 }} />
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user?.username}</div>
+                  <div style={{ fontSize: 9, color: "#f5a623", fontWeight: 700, letterSpacing: 1 }}>{(user?.role || "ÜYE").toUpperCase()}</div>
+                </div>
+              </div>
+              {[
+                { icon: "👤", label: "Profil & Ayarlar", action: () => { setAvatarMenuOpen(false); setProfileOpen(true); } },
+                { icon: "💬", label: "Sohbet",           action: () => { setAvatarMenuOpen(false); setChatOpen(true); } },
+                { icon: "🌐", label: "Website",          action: () => { setAvatarMenuOpen(false); openUrl("https://corleoneteam.com.tr").catch(() => {}); } },
+              ].map(item => (
+                <div key={item.label}
+                  onPointerDown={e => { e.stopPropagation(); item.action(); }}
+                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", color: "rgba(255,255,255,.8)", fontSize: 12, fontWeight: 600, cursor: "pointer", borderBottom: "1px solid rgba(255,255,255,.05)" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,.07)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >
+                  <span>{item.icon}</span> {item.label}
+                </div>
+              ))}
+              <div
+                onPointerDown={e => { e.stopPropagation(); setAvatarMenuOpen(false); logout(); }}
+                style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", color: "rgba(231,76,60,.8)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                onMouseEnter={e => e.currentTarget.style.background = "rgba(231,76,60,.08)"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+              >
+                <span>🚪</span> Çıkış Yap
+              </div>
+            </div>
+          , document.body)}
+        </div>
         </div>
       </div>
 

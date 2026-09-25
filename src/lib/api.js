@@ -65,6 +65,9 @@ export const authApi = {
   loginWithGoogle:  (pollKey) => `${BASE_URL}/auth/google-login.php?desktop=1&poll_key=${pollKey}`,
   loginWithSteam:   (pollKey) => `${BASE_URL}/auth/steam-login.php?desktop=1&poll_key=${pollKey}`,
   pollOAuth: (key) => request("GET", `/auth/oauth-poll.php?action=get&key=${key}`),
+  linkGoogle:  () => `${BASE_URL}/auth/google-login.php?link=1`,
+  linkDiscord: () => `${BASE_URL}/auth/discord-login.php?link=1`,
+  linkSteam:   () => `${BASE_URL}/auth/steam-login.php?link=1`,
 };
 
 export const eventsApi = {
@@ -99,6 +102,13 @@ export const profileApi = {
   getSocials: () => request("GET", "/auth/user-socials.php?action=list"),
   saveSocial: (platform, value) => request("POST", "/auth/user-socials.php?action=save", { platform, value }),
   deleteSocial: (platform) => request("POST", "/auth/user-socials.php?action=delete", { platform }),
+  changePassword: (data) => request("POST", "/auth/profile-settings.php?action=change_password", data),
+  requestEmailChange: (email) => request("POST", "/auth/profile-settings.php?action=request_email_change", { email }),
+  saveNotifications: (data) => request("POST", "/auth/profile-settings.php?action=save_notifications", data),
+  savePrivacy: (data) => request("POST", "/auth/profile-settings.php?action=save_privacy", data),
+  listSessions: () => request("GET", "/auth/profile-settings.php?action=list_sessions"),
+  revokeOtherSessions: () => request("POST", "/auth/profile-settings.php?action=revoke_other_sessions", {}),
+  deleteAccount: (confirm) => request("POST", "/auth/profile-settings.php?action=delete_account", { confirm }),
 };
 
 export const steamApi = {
@@ -123,6 +133,81 @@ export const notificationsApi = {
   read:    (id) => request("POST", "/auth/app-notifications.php?action=read", { id }),
   readAll: () => request("POST", "/auth/app-notifications.php?action=read_all"),
   log:     (title, body, type, source_label) => request("POST", "/auth/app-notifications.php?action=log", { title, body, type, source_label }),
+};
+
+export const routesApi = {
+  list:            ()           => request("GET",  "/auth/routes.php?action=list"),
+  images:          (routeId)   => request("GET",  `/auth/routes.php?action=images&route_id=${routeId}`),
+  save:            (data)      => request("POST", "/auth/routes.php?action=save", data),
+  update:          (data)      => request("POST", "/auth/routes.php?action=update", data),
+  delete:          (id)        => request("POST", "/auth/routes.php?action=delete", { id }),
+  toggleVerify:    (id)        => request("POST", "/auth/routes.php?action=toggle_verify", { id }),
+  eventsForAssign: ()          => request("GET",  "/auth/routes.php?action=events_for_assign"),
+  assignEvent:     (routeId, eventId) => request("POST", "/auth/routes.php?action=assign_event", { route_id: routeId, event_id: eventId }),
+  unassignEvent:   (eventId)   => request("POST", "/auth/routes.php?action=unassign_event", { event_id: eventId }),
+  deleteImage:     (id)        => request("POST", "/auth/routes.php?action=delete_image", { id }),
+  updateImageType: (id, type)  => request("POST", "/auth/routes.php?action=update_image_type", { id, type }),
+  uploadPoolImage: (formData)  => request("POST", "/auth/routes.php?action=upload_pool_image", formData, true),
+  uploadRouteImage:(formData)  => request("POST", "/auth/routes.php?action=upload_route_image", formData, true),
+  imageUrl:        (path)      => `https://corleoneteam.com.tr/assets/uploads/routes/${path}`,
+};
+
+export const promodsApi = {
+  load: (game) => request("GET", `/auth/promods.php?game=${game}`),
+};
+
+export const logisticsApi = {
+  market:     (category = "is_bul") => request("GET",  `/logistics/data.php?type=market&category=${category}`),
+  garage:     ()                    => request("GET",  "/logistics/data.php?type=garage"),
+  finance:    ()                    => request("GET",  "/logistics/data.php?type=finance"),
+  activeJobs: ()                    => request("GET",  "/logistics/active-jobs.php"),
+  claimJob:   (job_id)              => request("POST", "/logistics/claim-job.php",  { job_id }),
+  startJob:   (data)                => request("POST", "/logistics/start-job.php",  data),
+  onboarding: ()                    => request("GET",  "/logistics/onboarding.php"),
+  setupSeed:  ()                    => request("POST", "/logistics/setup-seed.php", {}),
+};
+
+export const adminPromodsApi = {
+  load:             (game)  => request("GET",  `/auth/admin-promods.php?action=load&game=${game}`),
+  saveGameVersion:  (data)  => request("POST", "/auth/admin-promods.php?action=save_game_version",  data),
+  savePkgVersion:   (data)  => request("POST", "/auth/admin-promods.php?action=save_pkg_version",   data),
+  deletePkgVersion: (id)    => request("POST", "/auth/admin-promods.php?action=delete_pkg_version", { id }),
+  togglePublish:    (id)    => request("POST", "/auth/admin-promods.php?action=toggle_publish",     { id }),
+  saveFile:         (data)  => request("POST", "/auth/admin-promods.php?action=save_file",          data),
+  deleteFile:       (id)    => request("POST", "/auth/admin-promods.php?action=delete_file",        { id }),
+};
+
+export const adminFleetApi = {
+  list:          ()       => request("GET",  "/auth/admin-fleet.php?action=list"),
+  updateTruck:   (fd)     => request("POST", "/auth/admin-fleet.php?action=update_truck",   fd, true),
+  updateTrailer: (fd)     => request("POST", "/auth/admin-fleet.php?action=update_trailer", fd, true),
+};
+
+export const adminNotificationsApi = {
+  list:      ()     => request("GET",  "/auth/admin-notifications.php?action=list"),
+  users:     ()     => request("GET",  "/auth/admin-notifications.php?action=users"),
+  send:      (data) => request("POST", "/auth/admin-notifications.php?action=send", data),
+  delete:    (id)   => request("POST", "/auth/admin-notifications.php?action=delete", { id }),
+  deleteAll: ()     => request("POST", "/auth/admin-notifications.php?action=delete_all", {}),
+};
+
+export const adminPointsApi = {
+  load:       ()       => request("GET",  "/auth/admin-points.php?action=load"),
+  savePoints: (rules)  => request("POST", "/auth/admin-points.php?action=save_points", { rules }),
+  saveRanks:  (ranks)  => request("POST", "/auth/admin-points.php?action=save_ranks",  { ranks }),
+  saveTasks:  (tasks)  => request("POST", "/auth/admin-points.php?action=save_tasks",  { tasks }),
+};
+
+export const adminMediaApi = {
+  summary:   ()           => request("GET",  "/auth/admin-media.php?action=summary"),
+  userMedia: (userId)     => request("GET",  `/auth/admin-media.php?action=user_media&user_id=${userId}`),
+  delete:    (id)         => request("POST", "/auth/admin-media.php?action=delete", { id }),
+  setQuota:  (userId, mb) => request("POST", "/auth/admin-media.php?action=set_quota", { user_id: userId, quota_mb: mb }),
+  mediaUrl:  (userId, filename) => `https://corleoneteam.com.tr/assets/user-media/${userId}/${filename}`,
+};
+
+export const eventMediaApi = {
+  upload: (formData, onProgress) => xhrPost("https://corleoneteam.com.tr/api/auth/event-media.php?action=upload", formData, onProgress),
 };
 
 export const adminApi = {
