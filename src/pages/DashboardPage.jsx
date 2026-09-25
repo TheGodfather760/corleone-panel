@@ -119,8 +119,8 @@ export default function DashboardPage({ onNavigate }) {
 
   useEffect(() => {
     dashboardApi.get()
-      .then(r => { console.log('[dashboard]', r.data); setData(r.data.data); })
-      .catch(e => console.error('[dashboard error]', e?.response?.status, e?.response?.data));
+      .then(r => { setData(r.data.data); })
+      .catch(() => {});
   }, []);
 
   const rank     = data?.rank;

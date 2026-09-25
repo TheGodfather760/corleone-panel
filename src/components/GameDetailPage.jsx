@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { invoke } from "@tauri-apps/api/core";
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { readFile } from "@tauri-apps/plugin-fs";
 import { eventsApi, downloadsApi, steamApi, eventMediaApi } from "../lib/api";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { ChevronLeft, Play, Clock, Trophy, Package, Info, Activity, Image, Newspaper } from "lucide-react";
@@ -470,8 +471,6 @@ function PostGameModal({ game, launchTime, onClose }) {
     for (const idx of toUpload) {
       const f = shots[idx];
       try {
-        // Dosyayı Tauri fs ile oku → Blob oluştur
-        const { readFile } = await import("@tauri-apps/plugin-fs");
         const bytes = await readFile(f.path);
         const ext = f.name.split(".").pop().toLowerCase();
         const mime = ext === "png" ? "image/png" : "image/jpeg";
